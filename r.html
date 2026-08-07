@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Responder</title>
+    <link rel="stylesheet" href="/css/estilo.css" />
+  </head>
+  <body>
+    <main class="alumno">
+      <p class="alumno__marca">Nube de palabras</p>
+
+      <!-- Sin código en la URL: se tipea -->
+      <form id="form-codigo" class="entrada-codigo" hidden>
+        <label for="codigo">Escribe el código que ves proyectado</label>
+        <input
+          id="codigo"
+          name="codigo"
+          maxlength="4"
+          autocomplete="off"
+          autocapitalize="characters"
+          spellcheck="false"
+          inputmode="text"
+          required
+        />
+        <button type="submit" class="boton boton--principal">Entrar</button>
+      </form>
+
+      <p id="cargando" class="mensaje">Cargando…</p>
+      <p id="error" class="mensaje mensaje--error" hidden></p>
+
+      <!-- Esperando pregunta -->
+      <div id="espera" hidden>
+        <p class="mensaje">
+          Estás dentro. Espera la próxima pregunta de tu profesor.
+        </p>
+      </div>
+
+      <!-- Pregunta activa -->
+      <div id="bloque-pregunta" class="bloque" hidden>
+        <p id="pregunta" class="alumno__pregunta"></p>
+
+        <form id="form-palabras" class="bloque">
+          <div id="campos" class="campos"></div>
+          <p id="ayuda" class="pie"></p>
+          <button type="submit" id="btn-enviar" class="boton boton--principal">
+            Enviar
+          </button>
+        </form>
+      </div>
+
+      <!-- Ya respondió / votación cerrada -->
+      <p id="listo" class="mensaje mensaje--exito" hidden></p>
+
+      <button id="btn-actualizar" class="boton" hidden>Ver pregunta actual</button>
+
+      <p class="pie">
+        Es anónimo: no se guarda quién escribió qué.
+      </p>
+    </main>
+
+    <script type="module" src="/js/alumno.js"></script>
+  </body>
+</html>

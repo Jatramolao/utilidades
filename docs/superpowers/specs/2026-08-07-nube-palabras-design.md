@@ -319,3 +319,43 @@ primera vez que corre.
 
 3 archivos principales, del orden de 600 líneas. Proyecto pequeño de verdad, alineado con la
 regla 6 del método: *un archivo, un propósito, cero dependencias mientras se pueda.*
+
+---
+
+## 12. Cambios durante la implementación (2026-08-07)
+
+La v1 está implementada. Lo que se desvió de este documento, y por qué:
+
+- **La normalización quita puntuación en ambos extremos**, no solo al final. "¿apertura?" se
+  normalizaba a "¿apertura" con la regla original.
+- **Se agregó protección de la ñ.** Descomponer acentos convertía "año" en "ano", fusionando dos
+  palabras muy distintas en una pantalla proyectada frente a un curso. No estaba previsto en el
+  diseño y es la corrección más importante de la implementación.
+- **Se deduplica dentro de un mismo envío.** Un alumno que escribe la misma palabra en los tres
+  campos cuenta una vez; si no, podría triplicar su término favorito él solo.
+- **Moderar pide confirmación** (clic en la palabra → "¿Eliminar «X»?" → Eliminar), en vez del
+  clic único que decía el diseño. Borrar la palabra equivocada delante del curso es peor que el
+  segundo extra que cuesta confirmar.
+- **El QR se implementó acotado a versiones 1-5, corrección L y bloque único.** Cubre 106
+  caracteres, de sobra para la URL de sala, y al ser bloque único evita la intercalación de
+  bloques de corrección. La selección de máscara usa las reglas de penalización 1, 2 y 4 del
+  estándar; se omite la 3, que solo afina la lectura en condiciones difíciles.
+- **Se agregaron dos estados de pantalla** no previstos: "Esperando respuestas" cuando la
+  pregunta está abierta y nadie ha respondido, y un botón "Salir" para soltar la sala.
+
+### Verificación realizada
+
+- 64 pruebas con `node --test`, todas en verde.
+- **El codificador QR se verificó decodificando su salida con el detector de códigos del
+  navegador**, que devolvió la URL exacta. Los bits de formato coinciden con la tabla de la norma
+  ISO/IEC 18004, y la palabra de código Reed-Solomon se anula en las potencias de alfa que exige
+  el estándar.
+- Recorrido completo en el navegador: abrir sala, lanzar pregunta, 14 alumnos respondiendo,
+  agrupación de variantes, "año" y "ano" separadas, moderación, ocultar/mostrar, cerrar votación,
+  segunda pregunta con el mismo código, recarga del proyector y caída del servidor.
+- **Estabilidad del layout medida, no supuesta:** tras tres votos nuevos que cambiaron el tamaño
+  de varias palabras, ninguna se movió de su posición.
+
+### Pendiente antes de usarla en clase
+
+Prueba de humo con teléfonos reales y despliegue con Upstash. Ver `BACKLOG.md`.

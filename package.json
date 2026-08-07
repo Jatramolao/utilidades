@@ -1,0 +1,11 @@
+{
+  "name": "nube-palabras",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Nube de palabras en vivo para clase. Sin cuentas, sin dependencias.",
+  "scripts": {
+    "test": "node --test",
+    "dev": "node dev.js"
+  }
+}

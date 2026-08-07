@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "nube-palabras",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["dev.js", "3210"],
+      "port": 3210
+    }
+  ]
+}

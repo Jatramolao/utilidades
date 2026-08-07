@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Nube de palabras — profesor</title>
+    <link rel="stylesheet" href="/css/estilo.css" />
+  </head>
+  <body>
+    <!-- Pantalla 1: abrir sala -->
+    <section id="pantalla-inicio" class="pantalla inicio">
+      <div>
+        <p class="marca">Nube de palabras</p>
+        <h1>Pregunta algo y proyecta lo que responde el curso.</h1>
+      </div>
+      <p>
+        Abres una sala, los alumnos escanean el QR y escriben hasta tres palabras.
+        Sin cuentas y sin instalar nada. La sala se borra sola a las 6 horas.
+      </p>
+      <div>
+        <button id="btn-abrir" class="boton boton--principal boton--grande">
+          Abrir sala
+        </button>
+        <p id="error-inicio" class="dialogo__error" hidden></p>
+      </div>
+
+      <div id="salas-hoy" class="salas-hoy" hidden>
+        <h2>Mis salas de hoy</h2>
+        <ul id="lista-salas"></ul>
+      </div>
+    </section>
+
+    <!-- Pantalla 2: sala en curso -->
+    <section id="pantalla-sala" class="pantalla sala" hidden>
+      <header class="barra">
+        <p class="marca">Sala</p>
+        <p id="pregunta-actual" class="barra__pregunta"></p>
+        <p id="insignia-cerrada" class="marca" hidden>Votación cerrada</p>
+        <p id="participantes" class="contador"></p>
+        <div class="acciones">
+          <button id="btn-ocultar" class="boton boton--fantasma">Ocultar nube</button>
+          <button id="btn-cerrar" class="boton">Cerrar votación</button>
+          <button id="btn-nueva" class="boton boton--principal">Nueva pregunta</button>
+          <button id="btn-salir" class="boton boton--fantasma">Salir</button>
+        </div>
+      </header>
+
+      <div class="lienzo">
+        <div id="nube" class="nube"></div>
+
+        <!-- Sin pregunta activa: el QR manda la pantalla -->
+        <div id="ingreso-grande" class="ingreso ingreso--grande">
+          <div id="qr-grande" class="qr"></div>
+          <p id="codigo-grande" class="codigo-grande"></p>
+          <p id="url-grande" class="url-sala"></p>
+          <p class="ingreso__pie">Escanea el QR o entra con el código</p>
+        </div>
+
+        <!-- Con pregunta activa: el QR se va a la esquina para los que llegan tarde -->
+        <aside id="ingreso-esquina" class="ingreso ingreso--esquina" hidden>
+          <div id="qr-chico" class="qr"></div>
+          <p id="codigo-chico" class="codigo-grande"></p>
+          <p id="url-chica" class="ingreso__pie"></p>
+        </aside>
+
+        <div id="nube-oculta" class="aviso-grande" hidden>
+          <strong id="oculta-participantes">0</strong>
+          <span>respondiendo… la nube está oculta</span>
+        </div>
+
+        <div id="sin-respuestas" class="aviso-grande" hidden>
+          <strong>Esperando respuestas</strong>
+          <span>Escanea el QR para responder</span>
+        </div>
+      </div>
+
+      <div id="estado-red" class="estado-red" hidden>Reconectando…</div>
+
+      <div id="moderacion" class="moderacion" hidden>
+        <p id="moderacion-texto"></p>
+        <button id="btn-eliminar" class="boton boton--peligro">Eliminar</button>
+        <button id="btn-cancelar-mod" class="boton">Cancelar</button>
+      </div>
+    </section>
+
+    <!-- Diálogo de pregunta -->
+    <div id="velo-pregunta" class="velo" hidden>
+      <form id="form-pregunta" class="dialogo">
+        <h2>¿Qué le preguntas al curso?</h2>
+        <textarea
+          id="texto-pregunta"
+          maxlength="200"
+          placeholder="Ej: ¿Qué es lo más difícil de un buen encuadre?"
+          required
+        ></textarea>
+        <p id="error-pregunta" class="dialogo__error" hidden></p>
+        <div class="dialogo__acciones">
+          <button type="button" id="btn-cancelar-pregunta" class="boton">Cancelar</button>
+          <button type="submit" class="boton boton--principal">Lanzar</button>
+        </div>
+      </form>
+    </div>
+
+    <script type="module" src="/js/profesor.js"></script>
+  </body>
+</html>
