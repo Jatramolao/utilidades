@@ -231,6 +231,22 @@ button {
   font-size: 0.9rem;
 }
 
+/* En pantallas angostas (el portátil antes de conectar el proyector) los
+   botones aplastan la pregunta hasta dejarla ilegible. Se baja a su propia
+   línea en vez de competir por el ancho. */
+@media (max-width: 900px) {
+  .barra {
+    flex-wrap: wrap;
+    gap: 0.75rem 1rem;
+  }
+
+  .barra__pregunta {
+    order: 3;
+    flex-basis: 100%;
+    -webkit-line-clamp: 3;
+  }
+}
+
 /* --- Lienzo de la nube --------------------------------------------------- */
 
 .lienzo {
@@ -287,6 +303,13 @@ button {
 
 /* --- Ingreso: QR y código ------------------------------------------------ */
 
+/*
+ * El QR es la única forma de entrar a la sala, así que NADA puede taparlo.
+ * Estos z-index no son decoración: los paneles a sangre (`.aviso-grande`) y el
+ * diálogo de pregunta vienen después en el DOM y, sin esto, pintan encima —
+ * dejando en pantalla el mensaje "escanea el QR" sobre el QR tapado, que es un
+ * bloqueo del que la clase no sale.
+ */
 .ingreso {
   position: absolute;
   display: flex;
@@ -299,6 +322,8 @@ button {
 .ingreso--grande {
   inset: 0;
   justify-content: center;
+  z-index: 2;
+  transition: padding-top 200ms ease;
 }
 
 .ingreso--esquina {
@@ -307,6 +332,21 @@ button {
   padding: 0.75rem;
   border: 1px solid var(--linea);
   border-radius: var(--radio);
+  z-index: 3;
+}
+
+/* Mientras se escribe la pregunta, el QR se corre hacia abajo para dejarle
+   sitio al diálogo en vez de quedar debajo de él. */
+body.pidiendo .ingreso--grande {
+  padding-top: 15rem;
+}
+
+body.pidiendo .ingreso--grande .qr {
+  width: min(30vh, 30vw);
+}
+
+body.pidiendo .ingreso--grande .codigo-grande {
+  font-size: clamp(2rem, 6vh, 3.5rem);
 }
 
 .qr {
@@ -365,6 +405,7 @@ button {
 .aviso-grande {
   position: absolute;
   inset: 0;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -440,24 +481,34 @@ button {
 
 /* --- Diálogo de pregunta ------------------------------------------------- */
 
+/*
+ * El diálogo se ancla arriba y no oscurece la pantalla: mientras el profesor
+ * escribe la pregunta, los alumnos ya tienen que poder escanear el QR. El
+ * `pointer-events: none` del velo es parte de lo mismo — sin él, la capa
+ * seguiría interceptando el QR aunque se vea.
+ */
 .velo {
   position: fixed;
   inset: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 1.5rem;
-  background: rgb(0 0 0 / 55%);
+  background: transparent;
+  pointer-events: none;
   z-index: 40;
 }
 
 .dialogo {
   background: var(--papel);
+  border: 1px solid var(--tinta);
   border-radius: var(--radio);
+  box-shadow: 0 14px 44px rgb(0 0 0 / 22%);
   padding: 1.5rem;
   width: min(40rem, 100%);
   display: grid;
   gap: 1rem;
+  pointer-events: auto;
 }
 
 .dialogo h2 {

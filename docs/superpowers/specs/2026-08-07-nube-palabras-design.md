@@ -356,6 +356,32 @@ La v1 está implementada. Lo que se desvió de este documento, y por qué:
 - **Estabilidad del layout medida, no supuesta:** tras tres votos nuevos que cambiaron el tamaño
   de varias palabras, ninguna se movió de su posición.
 
+### Corrección posterior: el QR tapado (2026-08-07, reportado por Juan)
+
+**Síntoma:** al lanzar la pregunta el QR desaparecía, obligando a cancelar el diálogo para verlo.
+
+**Causa raíz:** no era la lógica de visibilidad — `#ingreso-esquina` quedaba correctamente con
+`hidden = false`. Era el **orden de apilado**: los paneles a sangre `.aviso-grande`
+("Esperando respuestas", "nube oculta") y el velo del diálogo vienen después en el DOM, son
+opacos y cubren `inset: 0` sin `z-index`, así que pintaban encima del QR.
+
+El caso peor era un bloqueo circular: la pantalla mostraba "Escanea el QR para responder"
+**sobre el QR tapado**, y ese panel solo se retira cuando alguien responde — cosa que nadie
+podía hacer.
+
+**Corrección:** `z-index` explícito para que el QR quede siempre por encima de los paneles; el
+diálogo de pregunta anclado arriba, sin fondo oscuro y con `pointer-events: none` en su velo,
+para que el QR grande se vea y se pueda escanear mientras el profesor escribe.
+
+**Prueba que lo cubre:** ciclo de `/pruebas` (26 comprobaciones). La lección que deja es que
+comprobar `hidden === false` no basta: hay que preguntar **quién pinta de verdad** en ese punto
+de la pantalla, con `elementFromPoint`. Seis de las 26 comprobaciones vigilan que el QR nunca
+quede tapado, en cada estado del ciclo.
+
+**Verificación insuficiente que lo dejó pasar:** en la verificación original inyecté palabras
+por la API antes de mirar la pantalla, así que nunca vi el estado "pregunta lanzada, cero
+respuestas" — que es exactamente el que estaba roto, y el primero que ve una clase real.
+
 ### Pendiente antes de usarla en clase
 
 Prueba de humo con teléfonos reales y despliegue con Upstash. Ver `BACKLOG.md`.

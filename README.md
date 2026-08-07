@@ -39,13 +39,30 @@ npm run dev
 Levanta `http://localhost:3000` con un almacén **en memoria**: no necesita credenciales ni red.
 Para usar otro puerto: `node dev.js 3210`.
 
-Pruebas:
+## Pruebas
+
+Dos niveles, ninguno con dependencias.
+
+**Lógica** — 64 pruebas con `node --test`: normalización, códigos de sala, codificador QR y el
+contrato completo de la API contra un almacén en memoria.
 
 ```bash
 npm test
 ```
 
-64 pruebas con `node --test`, sin frameworks ni dependencias.
+**Ciclo de lanzamiento de preguntas** — abre `/pruebas` en el navegador y presiona *Correr el
+ciclo*. Maneja la pantalla real del profesor dentro de un iframe y recorre abrir sala → lanzar →
+responder → ocultar → cerrar → lanzar la siguiente, con 26 comprobaciones.
+
+Lo que distingue a este ciclo: **no pregunta si un elemento tiene `hidden = false`, pregunta
+quién pinta de verdad en ese punto de la pantalla** (`elementFromPoint`). Nació de un bug en el
+que el QR de esquina estaba correctamente colocado y marcado como visible, pero un panel opaco
+posterior en el DOM lo tapaba — dejando en pantalla el mensaje "escanea el QR" sobre el QR
+tapado, un bloqueo del que la clase no salía.
+
+Corre contra el servidor que sirva la página, así que **también sirve de prueba de humo después
+de desplegar**: abre `https://<tu-dominio>/pruebas` y córrelo. Crea salas reales, que se borran
+solas.
 
 ---
 
@@ -79,6 +96,8 @@ js/qr.js              Codificador QR propio (testeado)
 js/nube.js            Layout de la nube en espiral, estable
 js/profesor.js        Lógica de la pantalla del profesor
 js/alumno.js          Lógica de la pantalla del alumno
+pruebas.html          Ciclo de prueba del lanzamiento de preguntas (/pruebas)
+js/ciclo.js           El ciclo en sí: maneja la pantalla real y comprueba oclusión
 api/[...ruta].js      Entrada de la API en Vercel
 api/_lib/rutas.js     Lógica de la API (sin transporte ni almacén)
 api/_lib/store-*.js   Almacenes intercambiables: Redis y memoria
@@ -106,3 +125,6 @@ Vanilla, módulos ES, **sin build tools y sin dependencias de npm**.
   el único control de acceso: sin él, un alumno con el código podría cerrar la votación.
 - **Nada puede dejar la pantalla en blanco.** Si la red falla, se avisa en una esquina y la nube
   que ya está se queda donde está.
+- **Nada puede tapar el QR.** Es la única forma de entrar a la sala. Los `z-index` de
+  `.ingreso--esquina` y `.aviso-grande`, y el `pointer-events: none` del velo del diálogo, están
+  puestos por eso — no son decoración. El ciclo de `/pruebas` los vigila.

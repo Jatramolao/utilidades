@@ -291,11 +291,15 @@ function abrirDialogoPregunta() {
   $('error-pregunta').hidden = true;
   $('texto-pregunta').value = '';
   $('velo-pregunta').hidden = false;
+  // Corre el QR grande hacia abajo para que no quede debajo del diálogo:
+  // mientras se escribe la pregunta, los alumnos ya deben poder escanear.
+  document.body.classList.add('pidiendo');
   $('texto-pregunta').focus();
 }
 
 function cerrarDialogoPregunta() {
   $('velo-pregunta').hidden = true;
+  document.body.classList.remove('pidiendo');
 }
 
 // --- Enganches ------------------------------------------------------------

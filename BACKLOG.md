@@ -3,13 +3,19 @@
 Fuente de verdad de lo pendiente. El diseño vive en
 [`docs/superpowers/specs/2026-08-07-nube-palabras-design.md`](docs/superpowers/specs/2026-08-07-nube-palabras-design.md).
 
-**Estado 2026-08-07:** v1 implementada y verificada de punta a punta en local. 64 pruebas en
-verde. Falta desplegar y probar con teléfonos reales.
+**Estado 2026-08-07:** v1 implementada y verificada de punta a punta en local. 64 pruebas de
+lógica + 26 del ciclo de lanzamiento de preguntas (`/pruebas`), todas en verde. Falta desplegar
+y probar con teléfonos reales.
+
+**Corregido tras el reporte de Juan:** el QR quedaba tapado por los paneles a sangre y por el
+diálogo de pregunta. Detalle de la causa raíz en la spec, §12.
 
 ---
 
 ## Antes de usarla en clase (bloqueante)
 
+- [ ] **B-00 · Correr `/pruebas` contra el despliegue** una vez publicado. Son 26 comprobaciones
+      sobre la pantalla real y toma 15 segundos.
 - [ ] **B-01 · Prueba de humo con 3 teléfonos reales.** Escanear el QR con teléfonos distintos y
       responder a la vez. El codificador QR está verificado decodificándolo con el detector de
       códigos del navegador, pero una cámara real en una sala con proyector es otra cosa.
