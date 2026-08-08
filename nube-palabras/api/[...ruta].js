@@ -61,9 +61,17 @@ export default async function handler(req, res) {
     );
   } catch (fallo) {
     console.error('[nube-palabras]', fallo);
+    // El primer despliegue suele ocurrir antes de conectar la base. Sin este
+    // caso aparte el síntoma sería un "no disponible" genérico, y habría que
+    // ir a los registros para descubrir que solo faltan dos variables.
+    const faltaBase = fallo.message?.includes('UPSTASH');
     resultado = {
-      estado: 503,
-      cuerpo: { error: 'El servicio no está disponible. Reintentando…' },
+      estado: faltaBase ? 500 : 503,
+      cuerpo: {
+        error: faltaBase
+          ? 'Falta conectar la base Redis. Agrega Upstash en Storage y vuelve a desplegar.'
+          : 'El servicio no está disponible. Reintentando…',
+      },
     };
   }
 

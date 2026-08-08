@@ -19,9 +19,13 @@ diálogo de pregunta. Detalle de la causa raíz en la spec, §12.
 - [ ] **B-01 · Prueba de humo con 3 teléfonos reales.** Escanear el QR con teléfonos distintos y
       responder a la vez. El codificador QR está verificado decodificándolo con el detector de
       códigos del navegador, pero una cámara real en una sala con proyector es otra cosa.
-- [ ] **B-02 · Crear la base de Upstash y desplegar en Vercel.** Ver el README.
-      ⚠️ El repo es una colección: al importar en Vercel hay que fijar
-      **Root Directory = `nube-palabras`**, si no no encuentra `vercel.json` ni la API.
+- [ ] **B-02 · Importar el repo en Vercel y conectar Upstash.** Receta paso a paso en el README.
+      Los tres puntos donde esto se tuerce:
+      1. `utilidades` no aparecerá en la lista hasta que le des acceso a la app de GitHub
+         (enlace *Adjust GitHub App Permissions*, en la misma pantalla de importación).
+      2. **Root Directory = `nube-palabras`**, o se despliega un sitio sin backend que falla
+         recién al abrir una sala.
+      3. Añadir Upstash en *Storage* y volver a desplegar.
 - [ ] **B-03 · Elegir dominio.** Los alumnos tipean la URL solo como respaldo, pero cuanto más
       corta, mejor. Hoy la URL de respaldo es la que dé Vercel.
 

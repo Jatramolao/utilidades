@@ -68,19 +68,46 @@ solas.
 
 ## Despliegue
 
-Requiere una base Redis de Upstash (el plan gratuito sobra: una pregunta consume del orden de
-250 comandos).
+El objetivo es que, una vez montado, **cada push a `main` despliegue solo**. No hay paso de
+compilación ni dependencias que instalar.
 
-1. **Crear la base:** en el panel de Vercel del proyecto, pestaña *Storage* → añadir **Upstash
-   Redis**. Vercel inyecta solo `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN`, que es
-   exactamente lo que la app lee. Si la creas directamente en upstash.com, copia esas dos
-   variables a mano en *Settings → Environment Variables*.
-2. **Desplegar:** `vercel --prod` o conectando el repo. No hay paso de compilación.
-3. **Verificar:** abre el sitio, abre una sala y responde desde tu propio teléfono antes de
-   usarlo en clase.
+La puesta a punto se hace **una sola vez y desde el navegador**: conectar un repositorio nuevo a
+Vercel exige conceder acceso a la app de GitHub, y ni el Root Directory ni la base de datos se
+pueden fijar desde la línea de comandos.
+
+### 1. Importar el repo (una vez)
+
+En Vercel: *Add New → Project → Import Git Repository*.
+
+- Si `utilidades` no aparece en la lista, usa el enlace **Adjust GitHub App Permissions** de esa
+  misma pantalla y dale acceso al repo. Es el paso que bloquea todo lo demás.
+- **Root Directory → Edit → `nube-palabras`.** Imprescindible: el repo es una colección, y sin
+  esto Vercel busca `vercel.json` y la carpeta `api/` en la raíz, no los encuentra, y publica un
+  sitio sin backend. El fallo no aparece al desplegar, sino al intentar abrir una sala.
+- Framework Preset: *Other*. Sin comando de build.
+
+### 2. Conectar la base Redis
+
+En el proyecto: pestaña *Storage* → añadir **Upstash Redis**. Vercel inyecta
+`UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN`, que es exactamente lo que la app lee. Si
+la creas en upstash.com, copia esas dos variables a mano en *Settings → Environment Variables*.
+
+Vuelve a desplegar después de añadirla. Si se te olvida, la app lo dice con todas sus letras:
+*"Falta conectar la base Redis"*.
+
+El plan gratuito sobra: una pregunta consume del orden de 250 comandos.
+
+### 3. Verificar
+
+Abre `https://<tu-dominio>/pruebas` y corre el ciclo: 26 comprobaciones sobre la pantalla real,
+15 segundos.
 
 > **Regla antes de la primera clase:** prueba de humo con 3 teléfonos distintos respondiendo a la
 > vez. La primera vez que esto corra frente a 30 personas no puede ser la primera vez que corre.
+
+### Después
+
+Cada push a `main` publica en producción. Cada push a otra rama genera una previsualización.
 
 ---
 
