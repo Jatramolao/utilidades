@@ -69,6 +69,9 @@ function noSeVe(titulo, id) {
   anotar($(id).hidden, titulo, $(id).hidden ? '' : 'sigue visible');
 }
 
+const textoDePalabra = (clave) =>
+  doc().querySelector(`.palabra[data-clave="${clave}"]`)?.textContent ?? null;
+
 const codigoDeLaSala = () => JSON.parse(ven().localStorage.getItem('nube:sala')).codigo;
 
 async function responder(codigo, token, palabras) {
@@ -140,6 +143,24 @@ async function correr() {
   anotar(palabras.includes('luz') && palabras.includes('fondo'), 'Las palabras llegan a la nube', palabras.join(', '));
   noSeVe('El aviso de "sin respuestas" se retira', 'sin-respuestas');
   seVeDeVerdad('El QR de esquina sigue a la vista con la nube llena', 'qr-chico');
+
+  // --- 3b. La grafía mostrada se corrige sola -----------------------------
+  // Se muestra la forma que más alumnos escribieron, así que puede cambiar con
+  // cada voto nuevo. En producción quedaba fija la primera que llegó, porque el
+  // elemento ya puesto nunca actualizaba su texto.
+  await responder(codigo, 'ciclo-grafia-1', ['composicion']);
+  await esperar(CICLO_SONDEO);
+  const grafiaInicial = textoDePalabra('composicion');
+
+  await responder(codigo, 'ciclo-grafia-2', ['Composición']);
+  await responder(codigo, 'ciclo-grafia-3', ['Composición']);
+  await esperar(CICLO_SONDEO);
+
+  anotar(
+    textoDePalabra('composicion') === 'Composición',
+    'La grafía en pantalla se corrige cuando cambia la forma mayoritaria',
+    `empezó "${grafiaInicial}" y quedó "${textoDePalabra('composicion')}"`,
+  );
 
   // --- 4. Ocultar la nube -------------------------------------------------
   $('btn-ocultar').click();

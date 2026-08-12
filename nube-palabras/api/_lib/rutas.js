@@ -216,9 +216,14 @@ async function enviarPalabras(store, codigo, cuerpo, ip) {
   }
 
   const aceptadas = candidatas.slice(0, disponibles);
+  // La grafía se registra ANTES que el conteo. Son dos viajes distintos al
+  // almacén y el proyector consulta cada 2 segundos: si una consulta cae justo
+  // en medio, es preferible que la palabra todavía no aparezca a que aparezca
+  // con su forma normalizada —sin tildes ni mayúsculas— que es lo que pasaba
+  // en producción, donde la latencia hace la ventana real.
   for (const { clave, original } of aceptadas) {
-    await store.hincrby(k.palabras(codigo, n), clave, 1);
     await store.hincrby(k.formas(codigo, n), `${clave}::${original}`, 1);
+    await store.hincrby(k.palabras(codigo, n), clave, 1);
   }
   if (aceptadas.length > 0) {
     await store.hincrby(k.cuota(codigo, n), token, aceptadas.length);

@@ -121,12 +121,19 @@ export function crearNube(contenedor, { alSeleccionar } = {}) {
     const maximo = palabras.reduce((mayor, p) => Math.max(mayor, p.conteo), 1);
     let hayQueRecolocar = false;
 
-    // Primero las que ya están: solo cambian de tamaño y color, nunca de sitio.
+    // Primero las que ya están: cambian de tamaño, color y grafía, nunca de sitio.
     for (const palabra of palabras) {
       const puesta = puestas.get(palabra.clave);
       if (!puesta) continue;
       puesta.el.style.color = tono(palabra.conteo, maximo);
-      if (palabra.conteo === puesta.conteo) continue;
+
+      // La grafía mostrada es la que más alumnos escribieron, así que puede
+      // cambiar con cada voto nuevo. Sin esto, la primera forma que llegó se
+      // quedaba en pantalla para siempre: "simetria" en vez de "simetría".
+      const cambioLaGrafia = puesta.el.textContent !== palabra.texto;
+      if (cambioLaGrafia) puesta.el.textContent = palabra.texto;
+
+      if (!cambioLaGrafia && palabra.conteo === puesta.conteo) continue;
 
       puesta.el.style.fontSize = `${tamanoFuente(palabra.conteo, geometria.unidad)}px`;
       Object.assign(puesta, medir(puesta.el), { conteo: palabra.conteo });

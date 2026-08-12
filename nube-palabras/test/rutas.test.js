@@ -409,3 +409,82 @@ test('métodos y rutas desconocidas responden con claridad', async () => {
   assert.equal((await cliente.llamar('GET', 'otra/cosa')).estado, 404);
   assert.equal((await cliente.llamar('GET', `sala/${codigo}/pregunta/0/nube`)).estado, 400);
 });
+
+// --- Orden de escritura ---------------------------------------------------
+
+test('la grafía se guarda antes que el conteo', async () => {
+  // Son dos viajes distintos al almacén. Una consulta del proyector que caiga
+  // en medio no puede ver el conteo sin la grafía: la palabra aparecería
+  // normalizada ("simetria") y se quedaría así. Al revés es inofensivo: la
+  // palabra sencillamente todavía no está.
+  const store = crearStoreMemoria();
+  const orden = [];
+  const espiado = {
+    ...store,
+    hincrby: async (clave, campo, delta) => {
+      if (clave.endsWith(':formas')) orden.push('formas');
+      if (clave.endsWith(':palabras')) orden.push('palabras');
+      return store.hincrby(clave, campo, delta);
+    },
+  };
+  const llamar = (metodo, ruta, opciones = {}) =>
+    manejar(
+      { metodo, segmentos: ruta.split('/').filter(Boolean), consulta: {}, ...opciones },
+      espiado,
+    );
+
+  const { codigo, tokenProfesor } = (await llamar('POST', 'sala')).cuerpo;
+  await llamar('POST', `sala/${codigo}/pregunta`, {
+    cuerpo: { texto: '¿Y?' },
+    tokenProfesor,
+  });
+  orden.length = 0;
+  await llamar('POST', `sala/${codigo}/palabras`, {
+    cuerpo: { token: 'dispositivo-1', palabras: ['simetría'] },
+  });
+
+  assert.deepEqual(orden, ['formas', 'palabras']);
+});
+
+test('una consulta entre ambas escrituras no muestra la palabra a medias', async () => {
+  const store = crearStoreMemoria();
+  let consultaEnMedio = null;
+  const llamar = (metodo, ruta, almacen, opciones = {}) =>
+    manejar(
+      { metodo, segmentos: ruta.split('/').filter(Boolean), consulta: {}, ...opciones },
+      almacen,
+    );
+
+  const { codigo, tokenProfesor } = (await llamar('POST', 'sala', store)).cuerpo;
+  await llamar('POST', `sala/${codigo}/pregunta`, store, {
+    cuerpo: { texto: '¿Y?' },
+    tokenProfesor,
+  });
+
+  // Se consulta la nube justo después de escribir la grafía y antes del conteo.
+  const espiado = {
+    ...store,
+    hincrby: async (clave, campo, delta) => {
+      const resultado = await store.hincrby(clave, campo, delta);
+      if (clave.endsWith(':formas') && consultaEnMedio === null) {
+        consultaEnMedio = (
+          await llamar('GET', `sala/${codigo}/pregunta/1/nube`, store)
+        ).cuerpo;
+      }
+      return resultado;
+    },
+  };
+
+  await llamar('POST', `sala/${codigo}/palabras`, espiado, {
+    cuerpo: { token: 'dispositivo-1', palabras: ['simetría'] },
+  });
+
+  assert.deepEqual(
+    consultaEnMedio.palabras,
+    [],
+    'a mitad de escritura la nube va vacía, nunca con la grafía normalizada',
+  );
+
+  const final = (await llamar('GET', `sala/${codigo}/pregunta/1/nube`, store)).cuerpo;
+  assert.equal(final.palabras[0].texto, 'simetría');
+});
