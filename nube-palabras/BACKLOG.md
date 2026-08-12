@@ -3,10 +3,15 @@
 Fuente de verdad de lo pendiente. El diseño vive en
 [`docs/superpowers/specs/2026-08-07-nube-palabras-design.md`](docs/superpowers/specs/2026-08-07-nube-palabras-design.md).
 
-**Estado 2026-08-08: ✅ EN PRODUCCIÓN — https://utilidades-psi.vercel.app**
+**Estado 2026-08-12: ✅ EN PRODUCCIÓN — https://nubepalabras.vercel.app**
 
-81 pruebas de lógica (`npm test`) + 29 del ciclo de lanzamiento de preguntas (`/pruebas`),
-todas en verde **corriendo contra producción**. Falta solo la prueba con teléfonos reales.
+v1.1 (pantalla proyectada) desplegada. **90 pruebas de lógica** (`npm test`) + **45 del ciclo**
+de `/pruebas`, todas en verde **corriendo contra producción**. Falta solo la prueba con muchos
+teléfonos reales en sala.
+
+⚠️ **Al commitear, el email de autor debe ser `jatramolao@gmail.com`.** Vercel rechaza el
+despliegue con *"The commit author email is not a valid email address"* si se usa otro, y el
+síntoma es un despliegue encolado en estado UNKNOWN que nunca construye.
 
 Cuatro fallos aparecieron al publicar y están corregidos; los cuatro se detallan en la spec, §12:
 
@@ -60,8 +65,8 @@ Ordenados por lo que *sospecho* que pesa más. La bitácora manda sobre este ord
 - [x] Modo nocturno manual, con el QR siempre sobre fondo claro.
 
 ### Frente A · Fricción de sala
-- [ ] **B-03 · Dominio corto.** Hoy se dicta `utilidades-psi.vercel.app/r`, incómodo en voz alta.
-      El único ítem de esta lista que no es una suposición: la fricción es evidente.
+- [x] **B-03 · Dominio corto.** Resuelto por Juan: `nubepalabras.vercel.app/r`. Es un alias del
+      mismo proyecto `utilidades`, no un proyecto aparte.
 - [ ] **A-01 · Cronómetro en pantalla.** "Tienen 60 segundos". ~40 líneas, solo cliente.
       ⚠️ Hipótesis mía, sin observar. Puede que no lo necesites nunca.
 - [ ] **A-02 · Que el alumno vea la nube en su teléfono** tras responder, con un botón que
