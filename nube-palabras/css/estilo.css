@@ -349,6 +349,30 @@ body.pidiendo .ingreso--grande .codigo-grande {
   font-size: clamp(2rem, 6vh, 3.5rem);
 }
 
+/* Ventana baja (el portátil antes de conectar el proyector, o la barra partida
+   en dos líneas): la tarjeta del QR se compacta para seguir cabiendo entera en
+   el lienzo. Si no cabe, el `overflow: hidden` del lienzo la recorta y el QR
+   desaparece — el mismo fallo de siempre entrando por otra puerta. */
+@media (max-height: 620px) {
+  .ingreso--esquina {
+    padding: 0.5rem;
+    gap: 0.25rem;
+  }
+
+  .ingreso--esquina .qr {
+    width: 72px;
+    min-width: 72px;
+  }
+
+  .ingreso--esquina .codigo-grande {
+    font-size: 1.05rem;
+  }
+
+  .ingreso--esquina .ingreso__pie {
+    display: none;
+  }
+}
+
 .qr {
   display: block;
 }
