@@ -64,7 +64,7 @@ export default async function handler(req, res) {
     // El primer despliegue suele ocurrir antes de conectar la base. Sin este
     // caso aparte el síntoma sería un "no disponible" genérico, y habría que
     // ir a los registros para descubrir que solo faltan dos variables.
-    const faltaBase = fallo.message?.includes('UPSTASH');
+    const faltaBase = fallo.message?.startsWith('Falta la conexión a Redis');
     resultado = {
       estado: faltaBase ? 500 : 503,
       cuerpo: {

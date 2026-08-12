@@ -88,9 +88,19 @@ En Vercel: *Add New → Project → Import Git Repository*.
 
 ### 2. Conectar la base Redis
 
-En el proyecto: pestaña *Storage* → añadir **Upstash Redis**. Vercel inyecta
-`UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN`, que es exactamente lo que la app lee. Si
-la creas en upstash.com, copia esas dos variables a mano en *Settings → Environment Variables*.
+En el proyecto: pestaña *Storage* → añadir **Upstash Redis**.
+
+Ojo con los nombres, porque no son los que uno esperaría: la integración del Marketplace de
+Vercel crea las variables con prefijo **`KV_`** (`KV_REST_API_URL`, `KV_REST_API_TOKEN`), por
+compatibilidad con Vercel KV — **no** `UPSTASH_REDIS_REST_*`. La app acepta los dos juegos de
+nombres, así que no hay que renombrar nada.
+
+En el mismo lote llegan `KV_REST_API_READ_ONLY_TOKEN`, `KV_URL` y `REDIS_URL`. La app las ignora
+a propósito: el token de solo lectura no sirve porque escribe, y las otras dos son `rediss://`
+para clientes TCP, no la API REST.
+
+Si en cambio creas la base en upstash.com, copia `UPSTASH_REDIS_REST_URL` y
+`UPSTASH_REDIS_REST_TOKEN` a mano en *Settings → Environment Variables*.
 
 Vuelve a desplegar después de añadirla. Si se te olvida, la app lo dice con todas sus letras:
 *"Falta conectar la base Redis"*.

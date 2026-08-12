@@ -19,9 +19,16 @@ import { crearStoreRedis } from './api/_lib/store-redis.js';
 const RAIZ = fileURLToPath(new URL('.', import.meta.url));
 const PUERTO = Number(process.argv[2] ?? process.env.PORT ?? 3000);
 
-const conRedis =
-  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN;
-const store = conRedis ? crearStoreRedis() : crearStoreMemoria();
+// Se intenta Redis y se cae a memoria si no hay credenciales. Preguntar por
+// nombres de variables aquí duplicaría un conocimiento que ya vive —y cambia—
+// dentro de store-redis.js.
+const { store, almacen } = (() => {
+  try {
+    return { store: crearStoreRedis(), almacen: 'Upstash Redis' };
+  } catch {
+    return { store: crearStoreMemoria(), almacen: 'memoria (solo desarrollo)' };
+  }
+})();
 
 const TIPOS = {
   '.html': 'text/html; charset=utf-8',
@@ -101,5 +108,5 @@ const servidor = createServer(async (req, res) => {
 
 servidor.listen(PUERTO, () => {
   console.log(`nube-palabras en http://localhost:${PUERTO}`);
-  console.log(`almacén: ${conRedis ? 'Upstash Redis' : 'memoria (solo desarrollo)'}`);
+  console.log(`almacén: ${almacen}`);
 });
