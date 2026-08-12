@@ -3,31 +3,32 @@
 Fuente de verdad de lo pendiente. El diseño vive en
 [`docs/superpowers/specs/2026-08-07-nube-palabras-design.md`](docs/superpowers/specs/2026-08-07-nube-palabras-design.md).
 
-**Estado 2026-08-07:** v1 implementada y verificada de punta a punta en local. 64 pruebas de
-lógica + 26 del ciclo de lanzamiento de preguntas (`/pruebas`), todas en verde. Falta desplegar
-y probar con teléfonos reales.
+**Estado 2026-08-08: ✅ EN PRODUCCIÓN — https://utilidades-psi.vercel.app**
 
-**Corregido tras el reporte de Juan:** el QR quedaba tapado por los paneles a sangre y por el
-diálogo de pregunta. Detalle de la causa raíz en la spec, §12.
+81 pruebas de lógica (`npm test`) + 29 del ciclo de lanzamiento de preguntas (`/pruebas`),
+todas en verde **corriendo contra producción**. Falta solo la prueba con teléfonos reales.
+
+Cuatro fallos aparecieron al publicar y están corregidos; los cuatro se detallan en la spec, §12:
+
+- El QR quedaba tapado por los paneles a sangre y por el diálogo de pregunta.
+- La integración de Upstash de Vercel crea las variables como `KV_*`, no `UPSTASH_REDIS_REST_*`.
+- El catch-all `api/[...ruta].js` de Vercel resolvía un solo segmento: se enruta a mano.
+- La nube medía anchos sobre elementos en transición, y las palabras se encimaban.
 
 ---
 
 ## Antes de usarla en clase (bloqueante)
 
-- [ ] **B-00 · Correr `/pruebas` contra el despliegue** una vez publicado. Son 26 comprobaciones
-      sobre la pantalla real y toma 15 segundos.
+- [x] **B-00 · Correr `/pruebas` contra el despliegue.** 29/29 en producción, 2026-08-08.
 - [ ] **B-01 · Prueba de humo con 3 teléfonos reales.** Escanear el QR con teléfonos distintos y
       responder a la vez. El codificador QR está verificado decodificándolo con el detector de
       códigos del navegador, pero una cámara real en una sala con proyector es otra cosa.
-- [ ] **B-02 · Importar el repo en Vercel y conectar Upstash.** Receta paso a paso en el README.
-      Los tres puntos donde esto se tuerce:
-      1. `utilidades` no aparecerá en la lista hasta que le des acceso a la app de GitHub
-         (enlace *Adjust GitHub App Permissions*, en la misma pantalla de importación).
-      2. **Root Directory = `nube-palabras`**, o se despliega un sitio sin backend que falla
-         recién al abrir una sala.
-      3. Añadir Upstash en *Storage* y volver a desplegar.
+      **Es lo único que queda para usarla en clase.**
+- [x] **B-02 · Importar el repo en Vercel y conectar Upstash.** Hecho 2026-08-08.
+      Si alguna vez hay que rehacerlo: Root Directory = `nube-palabras`, Upstash desde *Storage*,
+      y redesplegar. Receta completa en el README.
 - [ ] **B-03 · Elegir dominio.** Los alumnos tipean la URL solo como respaldo, pero cuanto más
-      corta, mejor. Hoy la URL de respaldo es la que dé Vercel.
+      corta, mejor. Hoy es `utilidades-psi.vercel.app/r`, que es largo para dictarlo en voz alta.
 
 ---
 

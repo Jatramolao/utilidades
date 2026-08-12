@@ -382,6 +382,36 @@ quede tapado, en cada estado del ciclo.
 por la API antes de mirar la pantalla, así que nunca vi el estado "pregunta lanzada, cero
 respuestas" — que es exactamente el que estaba roto, y el primero que ve una clase real.
 
+### Lo que se rompió al publicar (2026-08-08)
+
+Cuatro fallos que ninguna prueba local podía haber encontrado, porque los cuatro dependían del
+entorno real. Vale la pena dejarlos escritos porque la lección se repite.
+
+**1. La integración de Upstash no usa los nombres esperados.** Conectada desde *Storage*, Vercel
+crea `KV_REST_API_URL` / `KV_REST_API_TOKEN` —por compatibilidad con Vercel KV— y no
+`UPSTASH_REDIS_REST_*`, que era lo único que el código leía. La app publicada no podía abrir una
+sola sala. Ahora se aceptan los dos juegos de nombres.
+
+**2. El catch-all de Vercel resolvía un solo segmento.** Con `api/[...ruta].js`, `/api/sala`
+respondía y `/api/sala/ABCD` daba un NOT_FOUND de plataforma. La función estaba bien desplegada:
+lo que fallaba era el enrutado por nombre de archivo. Se pasó a `api/index.js` con reescrituras
+declaradas en `vercel.json`, y de paso se quitó `cleanUrls`. **Regla que queda:** en Vercel, el
+enrutado explícito sale más barato que depurar el implícito.
+
+**3. Carrera entre el conteo y la grafía.** `verNube` podía leer el conteo de una palabra antes
+de que se escribiera su forma original —son dos viajes distintos al almacén— y mostraba la
+versión normalizada, sin tildes, que además se quedaba fija en pantalla. Con el almacén en
+memoria la ventana es nula; por HTTP a Upstash es real. Ahora la grafía se escribe primero.
+
+**4. La nube medía anchos falsos.** `nube.js` leía `offsetWidth` del elemento real, que tiene
+`transition: font-size`. Leerlo justo después de cambiar el tamaño devuelve el ancho *anterior*,
+así que la detección de choques trabajaba con medidas equivocadas: 18 pares de palabras
+encimadas en el proyector. Ahora se mide sobre un gemelo oculto y sin transiciones.
+
+**El patrón común:** los cuatro se veían solo en producción, y tres de los cuatro los encontró
+el ciclo de `/pruebas` corriendo contra el sitio publicado. Que el ciclo pueda apuntar a
+cualquier servidor resultó más valioso que cualquier prueba unitaria añadida después.
+
 ### Pendiente antes de usarla en clase
 
-Prueba de humo con teléfonos reales y despliegue con Upstash. Ver `BACKLOG.md`.
+Prueba de humo con teléfonos reales. Ver `BACKLOG.md`.
