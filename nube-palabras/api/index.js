@@ -1,10 +1,16 @@
 /**
  * Entrada de la API en Vercel. Una sola función para todas las rutas.
  * Aquí solo se traduce HTTP ↔ la lógica de `_lib/rutas.js`.
+ *
+ * El archivo se llama `index.js` y no `[...ruta].js` a propósito: el catch-all
+ * por nombre de archivo resolvía un solo segmento en producción (`/api/sala`
+ * sí, `/api/sala/ABCD` no), así que el enrutado se declara a mano en
+ * `vercel.json` y el camino llega en el parámetro `ruta`. Ver `_lib/camino.js`.
  */
 
 import { manejar } from './_lib/rutas.js';
 import { crearStoreRedis } from './_lib/store-redis.js';
+import { resolverPeticion } from './_lib/camino.js';
 
 let store = null;
 
@@ -40,10 +46,7 @@ async function leerCuerpo(req) {
 
 export default async function handler(req, res) {
   const url = new URL(req.url, `https://${req.headers.host ?? 'localhost'}`);
-  const segmentos = url.pathname.split('/').filter(Boolean);
-  if (segmentos[0] === 'api') segmentos.shift();
-
-  const consulta = Object.fromEntries(url.searchParams);
+  const { segmentos, consulta } = resolverPeticion(url);
   const cuerpo = req.method === 'GET' ? null : await leerCuerpo(req);
 
   let resultado;
