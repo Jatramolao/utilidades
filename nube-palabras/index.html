@@ -63,12 +63,25 @@
           <p class="ingreso__pie">Escanea el QR o entra con el código</p>
         </div>
 
-        <!-- Con pregunta activa: el QR se va a la esquina para los que llegan tarde -->
-        <aside id="ingreso-esquina" class="ingreso ingreso--esquina" hidden>
-          <div id="qr-chico" class="qr"></div>
-          <p id="codigo-chico" class="codigo-grande"></p>
-          <p id="url-chica" class="ingreso__pie"></p>
-        </aside>
+        <!--
+          Franja inferior: los conteos a la izquierda y el QR a la derecha.
+          Van en un contenedor flex, no posicionados por separado, para que no
+          puedan solaparse por mucho que se estreche la pantalla.
+        -->
+        <div class="pie-lienzo">
+          <!-- Las más repetidas con su número: el tamaño dice cuál, esto dice cuántas -->
+          <aside id="conteos" class="conteos" hidden>
+            <h2>Más repetidas</h2>
+            <ol id="conteos-lista"></ol>
+          </aside>
+
+          <!-- Con pregunta activa: el QR queda a mano para los que llegan tarde -->
+          <aside id="ingreso-esquina" class="ingreso ingreso--esquina" hidden>
+            <div id="qr-chico" class="qr"></div>
+            <p id="codigo-chico" class="codigo-grande"></p>
+            <p id="url-chica" class="ingreso__pie"></p>
+          </aside>
+        </div>
 
         <div id="nube-oculta" class="aviso-grande" hidden>
           <strong id="oculta-participantes">0</strong>

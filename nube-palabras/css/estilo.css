@@ -427,13 +427,40 @@ button {
   transition: padding-top 200ms ease;
 }
 
+/*
+ * Franja inferior del lienzo. Los conteos y el QR viven aquí dentro en vez de
+ * posicionarse cada uno por su cuenta: con dos tarjetas absolutas compitiendo
+ * por la misma esquina, cada vez que cambiaba el ancho una acababa tapando a la
+ * otra. En un contenedor flex eso no puede pasar por construcción.
+ *
+ * `pointer-events: none` en la franja para no robarle clics a las palabras de
+ * la nube que queden debajo; las tarjetas los recuperan.
+ */
+.pie-lienzo {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  pointer-events: none;
+}
+
+.pie-lienzo > * {
+  pointer-events: auto;
+}
+
 .ingreso--esquina {
-  right: 1rem;
-  bottom: 1rem;
+  position: static;
+  margin-left: auto; /* pegado a la derecha aunque no haya conteos */
   padding: 0.75rem;
   border: 1px solid var(--linea);
   border-radius: var(--radio);
-  z-index: 3;
+  flex: none;
 }
 
 /*
@@ -573,16 +600,15 @@ body.pidiendo .ingreso--grande .codigo-grande {
 /* Espeja la tarjeta del QR, en la esquina opuesta. El tamaño manda cuál se
    repitió más; este panel dice cuántas veces. */
 .conteos {
-  position: absolute;
-  left: 1rem;
-  bottom: 1rem;
-  z-index: 3;
   padding: 0.75rem 1rem;
   background: var(--papel);
   border: 1px solid var(--linea);
   border-radius: var(--radio);
-  min-width: 12rem;
-  max-width: 40vw;
+  /* Cede espacio antes que el QR: el QR es la puerta de entrada a la sala y los
+     conteos son información secundaria. */
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
 }
 
 .conteos h2 {
@@ -626,7 +652,6 @@ body.pidiendo .ingreso--grande .codigo-grande {
 @media (max-height: 620px) {
   .conteos {
     padding: 0.5rem 0.75rem;
-    min-width: 9rem;
   }
 
   .conteos li {

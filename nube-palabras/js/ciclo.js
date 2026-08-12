@@ -269,6 +269,16 @@ async function correr() {
   anotar(declaradoVisible('conteos'), 'Al cerrar la votación aparecen los conteos');
   seVeDeVerdad('El panel de conteos se ve de verdad', 'conteos');
 
+  // Las dos tarjetas de la franja inferior no pueden pisarse a ningún ancho.
+  // Pasó en producción y no en local, porque dependía del tamaño de la ventana.
+  const cajaConteos = $('conteos').getBoundingClientRect();
+  const cajaQr = $('ingreso-esquina').getBoundingClientRect();
+  anotar(
+    cajaConteos.right <= cajaQr.left + 1 || cajaQr.right <= cajaConteos.left + 1,
+    'El panel de conteos y el QR no se pisan',
+    `conteos ${Math.round(cajaConteos.left)}-${Math.round(cajaConteos.right)}, QR ${Math.round(cajaQr.left)}-${Math.round(cajaQr.right)}`,
+  );
+
   const filas = [...doc().querySelectorAll('#conteos-lista li')].map((li) => ({
     texto: li.querySelector('span').textContent,
     numero: Number(li.querySelector('b').textContent),
