@@ -72,6 +72,30 @@ function noSeVe(titulo, id) {
 const textoDePalabra = (clave) =>
   doc().querySelector(`.palabra[data-clave="${clave}"]`)?.textContent ?? null;
 
+/**
+ * Ninguna palabra puede encimarse con otra. Es el invariante del layout y no
+ * se puede comprobar leyendo el estado interno: hay que medir las cajas que
+ * realmente quedaron en pantalla.
+ */
+function comprobarSinSolapes(titulo) {
+  const cajas = [...doc().querySelectorAll('.palabra:not(.palabra--regla)')].map((el) => ({
+    texto: el.textContent,
+    caja: el.getBoundingClientRect(),
+  }));
+
+  const choques = [];
+  for (let i = 0; i < cajas.length; i++) {
+    for (let j = i + 1; j < cajas.length; j++) {
+      const a = cajas[i].caja;
+      const b = cajas[j].caja;
+      if (a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom) {
+        choques.push(`${cajas[i].texto}↔${cajas[j].texto}`);
+      }
+    }
+  }
+  anotar(choques.length === 0, titulo, choques.slice(0, 4).join(', '));
+}
+
 const codigoDeLaSala = () => JSON.parse(ven().localStorage.getItem('nube:sala')).codigo;
 
 async function responder(codigo, token, palabras) {
@@ -139,8 +163,9 @@ async function correr() {
   await responder(codigo, 'ciclo-alumno-2', ['luz']);
   await esperar(CICLO_SONDEO);
 
-  const palabras = [...doc().querySelectorAll('.palabra')].map((e) => e.textContent);
+  const palabras = [...doc().querySelectorAll('.palabra:not(.palabra--regla)')].map((e) => e.textContent);
   anotar(palabras.includes('luz') && palabras.includes('fondo'), 'Las palabras llegan a la nube', palabras.join(', '));
+  comprobarSinSolapes('Ninguna palabra se encima con otra');
   noSeVe('El aviso de "sin respuestas" se retira', 'sin-respuestas');
   seVeDeVerdad('El QR de esquina sigue a la vista con la nube llena', 'qr-chico');
 
@@ -161,6 +186,7 @@ async function correr() {
     'La grafía en pantalla se corrige cuando cambia la forma mayoritaria',
     `empezó "${grafiaInicial}" y quedó "${textoDePalabra('composicion')}"`,
   );
+  comprobarSinSolapes('Ninguna palabra se encima con otra tras cambiar de grafía');
 
   // --- 4. Ocultar la nube -------------------------------------------------
   $('btn-ocultar').click();
@@ -174,7 +200,7 @@ async function correr() {
 
   $('btn-ocultar').click();
   await esperar(CICLO_SONDEO);
-  anotar(doc().querySelectorAll('.palabra').length > 0, 'Mostrar la nube la devuelve');
+  anotar(doc().querySelectorAll('.palabra:not(.palabra--regla)').length > 0, 'Mostrar la nube la devuelve');
 
   // --- 5. Cerrar la votación ----------------------------------------------
   $('btn-cerrar').click();
@@ -182,7 +208,7 @@ async function correr() {
 
   anotar(declaradoVisible('insignia-cerrada'), 'Se marca la votación como cerrada');
   anotar($('btn-cerrar').hidden, 'El botón de cerrar desaparece una vez cerrada');
-  anotar(doc().querySelectorAll('.palabra').length > 0, 'La nube queda congelada, no se borra');
+  anotar(doc().querySelectorAll('.palabra:not(.palabra--regla)').length > 0, 'La nube queda congelada, no se borra');
   seVeDeVerdad('El QR sigue a la vista con la votación cerrada', 'qr-chico');
 
   // --- 6. Lanzar la segunda pregunta en la misma sala ---------------------
@@ -195,14 +221,14 @@ async function correr() {
   await esperar(1200);
 
   anotar(codigoDeLaSala() === codigo, 'El código de sala NO cambia entre preguntas', codigoDeLaSala());
-  anotar(doc().querySelectorAll('.palabra').length === 0, 'La nube arranca vacía en la pregunta nueva');
+  anotar(doc().querySelectorAll('.palabra:not(.palabra--regla)').length === 0, 'La nube arranca vacía en la pregunta nueva');
   anotar(!declaradoVisible('insignia-cerrada'), 'La marca de "cerrada" se apaga');
   seVeDeVerdad('El QR sigue a la vista tras lanzar la segunda pregunta', 'qr-chico');
 
   // --- 7. La cuota se renueva con la pregunta nueva ------------------------
   await responder(codigo, 'ciclo-alumno-1', ['exposición']);
   await esperar(CICLO_SONDEO);
-  const segundas = [...doc().querySelectorAll('.palabra')].map((e) => e.textContent);
+  const segundas = [...doc().querySelectorAll('.palabra:not(.palabra--regla)')].map((e) => e.textContent);
   anotar(
     segundas.includes('exposición'),
     'Un alumno que ya respondió la pregunta 1 puede responder la 2',

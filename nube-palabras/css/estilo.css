@@ -278,6 +278,18 @@ button {
   animation: aparecer 420ms ease both;
 }
 
+/* Gemelo oculto que sirve de regla. Sin transición ni animación: es lo que
+   permite medir el tamaño final de una palabra y no el de mitad de camino. */
+.palabra--regla {
+  left: -9999px;
+  top: 0;
+  transform: none;
+  transition: none;
+  animation: none;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 @keyframes aparecer {
   from {
     opacity: 0;

@@ -54,8 +54,23 @@ export function crearNube(contenedor, { alSeleccionar } = {}) {
     return el;
   }
 
-  function medir(el) {
-    return { ancho: el.offsetWidth, alto: el.offsetHeight };
+  /**
+   * Regla de medición: un elemento gemelo, oculto y sin transiciones.
+   *
+   * Medir sobre el elemento real devuelve su ancho *a mitad* de la animación de
+   * `font-size`, porque leer `offsetWidth` justo después de cambiar el tamaño
+   * da el valor de partida, no el de destino. Con las medidas mal, la detección
+   * de choques falla y las palabras terminan encimadas en el proyector.
+   */
+  const regla = document.createElement('span');
+  regla.className = 'palabra palabra--regla';
+  regla.setAttribute('aria-hidden', 'true');
+  contenedor.append(regla);
+
+  function medirTexto(texto, tamano) {
+    regla.textContent = texto;
+    regla.style.fontSize = `${tamano}px`;
+    return { ancho: regla.offsetWidth, alto: regla.offsetHeight };
   }
 
   function chocan(a, b) {
@@ -93,9 +108,10 @@ export function crearNube(contenedor, { alSeleccionar } = {}) {
     for (const palabra of ordenadas) {
       const puesta = puestas.get(palabra.clave);
       if (!puesta) continue;
-      puesta.el.style.fontSize = `${tamanoFuente(palabra.conteo, geometria.unidad)}px`;
+      const tamano = tamanoFuente(palabra.conteo, geometria.unidad);
+      puesta.el.style.fontSize = `${tamano}px`;
       puesta.el.style.color = tono(palabra.conteo, maximo);
-      const caja = medir(puesta.el);
+      const caja = medirTexto(palabra.texto, tamano);
       const hueco = buscarHueco(caja, ocupadas, geometria);
       if (!hueco) return false;
 
@@ -135,8 +151,9 @@ export function crearNube(contenedor, { alSeleccionar } = {}) {
 
       if (!cambioLaGrafia && palabra.conteo === puesta.conteo) continue;
 
-      puesta.el.style.fontSize = `${tamanoFuente(palabra.conteo, geometria.unidad)}px`;
-      Object.assign(puesta, medir(puesta.el), { conteo: palabra.conteo });
+      const tamano = tamanoFuente(palabra.conteo, geometria.unidad);
+      puesta.el.style.fontSize = `${tamano}px`;
+      Object.assign(puesta, medirTexto(palabra.texto, tamano), { conteo: palabra.conteo });
     }
 
     const ocupadas = [...puestas.values()].map(({ x, y, ancho, alto }) => ({ x, y, ancho, alto }));
@@ -156,16 +173,17 @@ export function crearNube(contenedor, { alSeleccionar } = {}) {
         .sort((a, b) => b.conteo - a.conteo);
 
       for (const palabra of nuevas) {
-        const el = crearElemento(palabra);
-        el.style.fontSize = `${tamanoFuente(palabra.conteo, geometria.unidad)}px`;
-        el.style.color = tono(palabra.conteo, maximo);
-        const caja = medir(el);
+        // Se mide antes de crear nada: si no cabe, no se toca el DOM.
+        const tamano = tamanoFuente(palabra.conteo, geometria.unidad);
+        const caja = medirTexto(palabra.texto, tamano);
         const hueco = buscarHueco(caja, ocupadas, geometria);
         if (!hueco) {
-          el.remove();
           hayQueRecolocar = true;
           break;
         }
+        const el = crearElemento(palabra);
+        el.style.fontSize = `${tamano}px`;
+        el.style.color = tono(palabra.conteo, maximo);
         ubicar(el, hueco.x, hueco.y);
         el.classList.add('palabra--entra');
         puestas.set(palabra.clave, { el, ...hueco, ...caja, conteo: palabra.conteo });
