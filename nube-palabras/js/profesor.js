@@ -14,12 +14,16 @@ const $ = (id) => document.getElementById(id);
 const INTERVALO = 2000;
 const CLAVE_SALA = 'nube:sala';
 const CLAVE_SALAS_HOY = 'nube:salas-hoy';
+const CLAVE_TEMA = 'nube:tema';
 const VIDA_SALA_MS = 6 * 60 * 60 * 1000;
+const CONTEOS_VISIBLES = 5;
+const CONTEOS_VISIBLES_BAJO = 3; // pantallas de poca altura
 
 let sala = null; // { codigo, tokenProfesor }
 let pregunta = null; // { n, texto, estado }
 let sondeo = null;
 let oculta = false;
+let conteos = false;
 let seleccionada = null;
 
 const nube = crearNube($('nube'), { alSeleccionar: proponerEliminar });
@@ -189,6 +193,8 @@ async function lanzarPregunta(texto) {
   nube.limpiar();
   oculta = false;
   $('btn-ocultar').textContent = 'Ocultar nube';
+  // Pregunta nueva, pantalla limpia: los conteos vuelven a esperar al cierre.
+  alternarConteos(false);
   guardarSala();
   pintarEstadoPregunta();
   iniciarSondeo();
@@ -200,6 +206,9 @@ async function cerrarVotacion() {
     await pedir(`/sala/${sala.codigo}/pregunta/${pregunta.n}/cerrar`, { metodo: 'POST' });
     pregunta.estado = 'cerrada';
     pintarEstadoPregunta();
+    // Cerrar la votación es el momento del revelado: los números entran solos.
+    alternarConteos(true);
+    await sondear();
   } catch (fallo) {
     avisarRed(true, fallo.message);
   }
@@ -270,8 +279,58 @@ function pintarNube(datos) {
   $('sin-respuestas').hidden = !sinRespuestas || oculta;
   $('nube-oculta').hidden = !oculta;
 
+  pintarConteos(datos.palabras);
+
   if (oculta) return;
   nube.actualizar(datos.palabras);
+}
+
+/**
+ * Panel con las más repetidas y su número. El tamaño en la nube dice cuál ganó;
+ * esto dice por cuánto.
+ */
+function pintarConteos(palabras) {
+  // Con la nube oculta el panel también se esconde: enseñar los números
+  // anularía justo lo que ese botón protege.
+  const mostrar = conteos && !oculta && palabras.length > 0;
+  $('conteos').hidden = !mostrar;
+  if (!mostrar) return;
+
+  const cuantas = window.innerHeight <= 620 ? CONTEOS_VISIBLES_BAJO : CONTEOS_VISIBLES;
+  const lista = $('conteos-lista');
+  lista.replaceChildren();
+
+  for (const palabra of palabras.slice(0, cuantas)) {
+    const item = document.createElement('li');
+    const texto = document.createElement('span');
+    texto.textContent = palabra.texto;
+    const numero = document.createElement('b');
+    numero.textContent = palabra.conteo;
+    item.append(texto, numero);
+    lista.append(item);
+  }
+}
+
+function alternarConteos(mostrar) {
+  conteos = mostrar;
+  $('btn-conteos').textContent = conteos ? 'Ocultar conteos' : 'Ver conteos';
+  $('btn-conteos').setAttribute('aria-pressed', String(conteos));
+  if (!conteos) $('conteos').hidden = true;
+}
+
+// --- Modo nocturno --------------------------------------------------------
+
+/**
+ * Manual y recordado, nunca automático por preferencia del sistema: el sistema
+ * se pone oscuro por la hora del día, y aquí lo que decide es la luz de la sala.
+ * Arranca siempre en claro, que es lo que funciona en un aula iluminada.
+ */
+function aplicarTema(tema) {
+  const oscuro = tema === 'oscuro';
+  document.documentElement.dataset.tema = oscuro ? 'oscuro' : 'claro';
+  $('btn-tema').textContent = oscuro ? 'Modo diurno' : 'Modo nocturno';
+  $('btn-tema').setAttribute('aria-pressed', String(oscuro));
+  localStorage.setItem(CLAVE_TEMA, oscuro ? 'oscuro' : 'claro');
 }
 
 function iniciarSondeo() {
@@ -315,8 +374,30 @@ $('btn-ocultar').addEventListener('click', () => {
   oculta = !oculta;
   $('btn-ocultar').textContent = oculta ? 'Mostrar nube' : 'Ocultar nube';
   $('nube-oculta').hidden = !oculta;
-  if (!oculta) sondear();
-  else $('sin-respuestas').hidden = true;
+  if (!oculta) {
+    sondear();
+  } else {
+    $('sin-respuestas').hidden = true;
+    $('conteos').hidden = true;
+  }
+});
+
+$('btn-conteos').addEventListener('click', () => {
+  alternarConteos(!conteos);
+  sondear();
+});
+
+$('btn-tema').addEventListener('click', () => {
+  const oscuro = document.documentElement.dataset.tema === 'oscuro';
+
+  // El fondo cambia de golpe. Si las palabras se fundieran durante 380 ms hacia
+  // su color nuevo, arrancarían invisibles sobre el fondo contrario. Se corta la
+  // transición para que el cambio de tema sea instantáneo, como se espera.
+  document.documentElement.classList.add('sin-transicion');
+  aplicarTema(oscuro ? 'claro' : 'oscuro');
+  nube.repintarColores();
+  void document.body.offsetWidth; // aplica el color antes de reactivar
+  document.documentElement.classList.remove('sin-transicion');
 });
 
 $('btn-salir').addEventListener('click', () => {
@@ -358,6 +439,9 @@ window.addEventListener('resize', () => {
 // Al cargar: si había una sala en curso, se reengancha sola. Un F5 accidental
 // en medio de la clase no puede costar la sala.
 (function arrancar() {
+  // Arranca en claro salvo que Juan lo haya dejado en oscuro en este navegador.
+  aplicarTema(localStorage.getItem(CLAVE_TEMA) === 'oscuro' ? 'oscuro' : 'claro');
+  alternarConteos(false);
   pintarSalasHoy();
   try {
     const guardada = JSON.parse(localStorage.getItem(CLAVE_SALA) ?? 'null');

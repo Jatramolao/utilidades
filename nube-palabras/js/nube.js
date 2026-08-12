@@ -11,10 +11,24 @@
  * nueva reescalaría toda la pantalla.
  */
 
+import { tonoDe } from './tono.js';
+
 const PASO_ESPIRAL = 0.18;
 const VUELTAS_MAX = 60;
-const SEPARACION = 6; // px de aire entre palabras
 const APLASTADO = 0.62; // la espiral se achata para aprovechar pantallas anchas
+
+/**
+ * Amplitud de la respiración, en píxeles. Cada palabra oscila alrededor de su
+ * sitio —nunca lo cambia— para que la nube no se vea congelada.
+ */
+export const AMPLITUD_RESPIRACION = 3;
+
+/**
+ * Aire entre palabras. Sube al doble de la amplitud por encima del margen base:
+ * si dos vecinas respiran la una hacia la otra, tienen que seguir sin tocarse.
+ * Sin esto, el movimiento reintroduce el solapamiento por la puerta de atrás.
+ */
+const SEPARACION = 6 + 2 * AMPLITUD_RESPIRACION;
 
 export function crearNube(contenedor, { alSeleccionar } = {}) {
   /** @type {Map<string, {el: HTMLElement, x: number, y: number, conteo: number, ancho: number, alto: number}>} */
@@ -36,12 +50,10 @@ export function crearNube(contenedor, { alSeleccionar } = {}) {
     return Math.min(maximo, crecido) * escala;
   }
 
-  function tono(conteo, maximo) {
-    // Más repetida, más oscura. El extremo claro se queda en 42% de luminosidad
-    // para no bajar del contraste que exige leerse desde el fondo de la sala.
-    const proporcion = maximo > 1 ? (conteo - 1) / (maximo - 1) : 1;
-    return `hsl(0 0% ${Math.round(42 - proporcion * 30)}%)`;
-  }
+  // El tema se lee del documento en cada pintado: así el cambio a modo nocturno
+  // no necesita avisar a la nube, solo repintar.
+  const tono = (conteo, maximo) =>
+    tonoDe(conteo, maximo, document.documentElement.dataset.tema);
 
   function crearElemento(palabra) {
     const el = document.createElement('button');
@@ -49,9 +61,22 @@ export function crearNube(contenedor, { alSeleccionar } = {}) {
     el.className = 'palabra';
     el.textContent = palabra.texto;
     el.dataset.clave = palabra.clave;
+
+    // Ritmo propio para cada palabra. El desfase negativo arranca la animación
+    // a mitad de ciclo, así ninguna empieza sincronizada con las demás.
+    el.style.setProperty('--respira-duracion', `${(4.5 + Math.random() * 3).toFixed(2)}s`);
+    el.style.setProperty('--respira-desfase', `-${(Math.random() * 7.5).toFixed(2)}s`);
+
     el.addEventListener('click', () => alSeleccionar?.(palabra));
     contenedor.append(el);
     return el;
+  }
+
+  /** Pulso corto cuando una palabra sube de conteo. */
+  function latir(el) {
+    el.classList.remove('palabra--sube');
+    void el.offsetWidth; // fuerza el reinicio de la animación
+    el.classList.add('palabra--sube');
   }
 
   /**
@@ -151,6 +176,10 @@ export function crearNube(contenedor, { alSeleccionar } = {}) {
 
       if (!cambioLaGrafia && palabra.conteo === puesta.conteo) continue;
 
+      // Alguien acaba de escribirla: se destaca con un pulso. Es el momento en
+      // que un alumno ve que su palabra creció.
+      if (palabra.conteo > puesta.conteo) latir(puesta.el);
+
       const tamano = tamanoFuente(palabra.conteo, geometria.unidad);
       puesta.el.style.fontSize = `${tamano}px`;
       Object.assign(puesta, medirTexto(palabra.texto, tamano), { conteo: palabra.conteo });
@@ -212,5 +241,27 @@ export function crearNube(contenedor, { alSeleccionar } = {}) {
     escala = 1;
   }
 
-  return { actualizar, limpiar, get cantidad() { return puestas.size; } };
+  /**
+   * Reaplica los colores con el tema actual, sin esperar a la red.
+   *
+   * Al cambiar a modo nocturno el fondo se oscurece al instante; si los colores
+   * de las palabras esperaran al siguiente sondeo, quedarían oscuras sobre
+   * oscuro durante todo el viaje de ida y vuelta al servidor. En una sala, un
+   * segundo de pantalla ilegible se nota.
+   */
+  function repintarColores() {
+    const maximo = [...puestas.values()].reduce((mayor, p) => Math.max(mayor, p.conteo), 1);
+    for (const puesta of puestas.values()) {
+      puesta.el.style.color = tono(puesta.conteo, maximo);
+    }
+  }
+
+  return {
+    actualizar,
+    limpiar,
+    repintarColores,
+    get cantidad() {
+      return puestas.size;
+    },
+  };
 }

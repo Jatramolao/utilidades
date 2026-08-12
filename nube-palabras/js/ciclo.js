@@ -72,24 +72,77 @@ function noSeVe(titulo, id) {
 const textoDePalabra = (clave) =>
   doc().querySelector(`.palabra[data-clave="${clave}"]`)?.textContent ?? null;
 
+/** Amplitud de la respiración en nube.js. Si cambia allí, cambia aquí. */
+const AMPLITUD_RESPIRACION = 3;
+
+const CONTRASTE_MINIMO = 4.5;
+
+function canalLineal(v) {
+  const c = v / 255;
+  return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+}
+
+function luminancia(rgb) {
+  const [r, g, b] = rgb.match(/\d+/g).map(Number);
+  return 0.2126 * canalLineal(r) + 0.7152 * canalLineal(g) + 0.0722 * canalLineal(b);
+}
+
+function razonDeContraste(colorA, colorB) {
+  const a = luminancia(colorA);
+  const b = luminancia(colorB);
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
+/**
+ * Toda palabra tiene que despegarse del fondo. Se comprueba **inmediatamente**
+ * después de cambiar de tema, sin esperar sondeos: el fallo que motivó esta
+ * comprobación era que el fondo se oscurecía al instante y los colores de las
+ * palabras esperaban al siguiente viaje a la red, dejando texto oscuro sobre
+ * fondo oscuro durante ese hueco.
+ */
+function comprobarContraste(titulo) {
+  const fondo = ven().getComputedStyle(doc().body).backgroundColor;
+  const flojas = [...doc().querySelectorAll('.palabra:not(.palabra--regla)')]
+    .map((el) => ({ texto: el.textContent, razon: razonDeContraste(ven().getComputedStyle(el).color, fondo) }))
+    .filter((p) => p.razon < CONTRASTE_MINIMO);
+
+  anotar(
+    flojas.length === 0,
+    titulo,
+    flojas.map((p) => `${p.texto} ${p.razon.toFixed(2)}:1`).slice(0, 4).join(', '),
+  );
+}
+
 /**
  * Ninguna palabra puede encimarse con otra. Es el invariante del layout y no
  * se puede comprobar leyendo el estado interno: hay que medir las cajas que
  * realmente quedaron en pantalla.
+ *
+ * Cada caja se infla por la amplitud de la respiración antes de comparar. Una
+ * medición suelta solo ve un instante del ciclo de oscilación; inflarla
+ * comprueba que **en ningún momento** del ciclo se tocan, que es el invariante
+ * de verdad.
  */
 function comprobarSinSolapes(titulo) {
-  const cajas = [...doc().querySelectorAll('.palabra:not(.palabra--regla)')].map((el) => ({
-    texto: el.textContent,
-    caja: el.getBoundingClientRect(),
-  }));
+  const m = AMPLITUD_RESPIRACION;
+  const cajas = [...doc().querySelectorAll('.palabra:not(.palabra--regla)')].map((el) => {
+    const c = el.getBoundingClientRect();
+    return {
+      texto: el.textContent,
+      izq: c.left - m,
+      der: c.right + m,
+      arr: c.top - m,
+      aba: c.bottom + m,
+    };
+  });
 
   const choques = [];
   for (let i = 0; i < cajas.length; i++) {
     for (let j = i + 1; j < cajas.length; j++) {
-      const a = cajas[i].caja;
-      const b = cajas[j].caja;
-      if (a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom) {
-        choques.push(`${cajas[i].texto}↔${cajas[j].texto}`);
+      const a = cajas[i];
+      const b = cajas[j];
+      if (a.izq < b.der && b.izq < a.der && a.arr < b.aba && b.arr < a.aba) {
+        choques.push(`${a.texto}↔${b.texto}`);
       }
     }
   }
@@ -210,6 +263,77 @@ async function correr() {
   anotar($('btn-cerrar').hidden, 'El botón de cerrar desaparece una vez cerrada');
   anotar(doc().querySelectorAll('.palabra:not(.palabra--regla)').length > 0, 'La nube queda congelada, no se borra');
   seVeDeVerdad('El QR sigue a la vista con la votación cerrada', 'qr-chico');
+
+  // --- 5b. Panel de conteos ------------------------------------------------
+  await esperar(CICLO_SONDEO);
+  anotar(declaradoVisible('conteos'), 'Al cerrar la votación aparecen los conteos');
+  seVeDeVerdad('El panel de conteos se ve de verdad', 'conteos');
+
+  const filas = [...doc().querySelectorAll('#conteos-lista li')].map((li) => ({
+    texto: li.querySelector('span').textContent,
+    numero: Number(li.querySelector('b').textContent),
+  }));
+  anotar(filas.length > 0, 'El panel lista palabras', filas.map((f) => `${f.texto}=${f.numero}`).join(', '));
+
+  const datosNube = await (
+    await fetch(`/api/sala/${codigo}/pregunta/1/nube`)
+  ).json();
+  const esperadas = datosNube.palabras.slice(0, filas.length);
+  anotar(
+    filas.every((f, i) => f.texto === esperadas[i].texto && f.numero === esperadas[i].conteo),
+    'Los números del panel coinciden con los de la API',
+  );
+  anotar(
+    filas.every((f, i) => i === 0 || f.numero <= filas[i - 1].numero),
+    'El panel va de mayor a menor',
+  );
+
+  // Con la nube oculta, los números también: enseñarlos anularía lo que ese
+  // botón protege.
+  $('btn-ocultar').click();
+  await esperar(500);
+  anotar($('conteos').hidden, 'Al ocultar la nube, el panel de conteos se esconde también');
+  $('btn-ocultar').click();
+  await esperar(CICLO_SONDEO);
+
+  // --- 5c. Modo nocturno ---------------------------------------------------
+  const fondoClaro = ven().getComputedStyle(doc().body).backgroundColor;
+  comprobarContraste('Las palabras contrastan con el fondo en modo diurno');
+
+  $('btn-tema').click();
+  // Sin esperar nada: el repintado tiene que ser inmediato, no depender de red.
+  comprobarContraste('Al cambiar de tema, las palabras contrastan de inmediato');
+  await esperar(500);
+
+  const fondoOscuro = ven().getComputedStyle(doc().body).backgroundColor;
+  anotar(fondoOscuro !== fondoClaro, 'El modo nocturno cambia el fondo', `${fondoClaro} → ${fondoOscuro}`);
+  anotar(
+    doc().documentElement.dataset.tema === 'oscuro',
+    'El tema queda marcado en el documento',
+  );
+
+  // Un QR claro sobre fondo oscuro es poco fiable para muchas cámaras, y es la
+  // única puerta de entrada a la sala.
+  const fondoQr = ven().getComputedStyle($('ingreso-esquina')).backgroundColor;
+  anotar(
+    fondoQr === 'rgb(255, 255, 255)',
+    'En modo nocturno la tarjeta del QR sigue clara',
+    fondoQr,
+  );
+  seVeDeVerdad('El QR se sigue viendo en modo nocturno', 'qr-chico');
+  comprobarSinSolapes('Ninguna palabra se encima en modo nocturno');
+
+  anotar(
+    ven().localStorage.getItem('nube:tema') === 'oscuro',
+    'El tema se recuerda en el navegador',
+  );
+
+  $('btn-tema').click();
+  await esperar(400);
+  anotar(
+    doc().documentElement.dataset.tema === 'claro',
+    'Se puede volver al modo diurno',
+  );
 
   // --- 6. Lanzar la segunda pregunta en la misma sala ---------------------
   $('btn-nueva').click();

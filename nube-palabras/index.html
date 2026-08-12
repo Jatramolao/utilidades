@@ -39,6 +39,12 @@
         <p id="insignia-cerrada" class="marca" hidden>Votación cerrada</p>
         <p id="participantes" class="contador"></p>
         <div class="acciones">
+          <button id="btn-tema" class="boton boton--fantasma" aria-pressed="false">
+            Modo nocturno
+          </button>
+          <button id="btn-conteos" class="boton boton--fantasma" aria-pressed="false">
+            Ver conteos
+          </button>
           <button id="btn-ocultar" class="boton boton--fantasma">Ocultar nube</button>
           <button id="btn-cerrar" class="boton">Cerrar votación</button>
           <button id="btn-nueva" class="boton boton--principal">Nueva pregunta</button>
@@ -73,6 +79,12 @@
           <strong>Esperando respuestas</strong>
           <span>Escanea el QR para responder</span>
         </div>
+
+        <!-- Las más repetidas con su número: el tamaño dice cuál, esto dice cuántas -->
+        <aside id="conteos" class="conteos" hidden>
+          <h2>Más repetidas</h2>
+          <ol id="conteos-lista"></ol>
+        </aside>
       </div>
 
       <div id="estado-red" class="estado-red" hidden>Reconectando…</div>

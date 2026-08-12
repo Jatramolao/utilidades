@@ -22,6 +22,24 @@
   --fuente: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
 }
 
+/*
+ * Modo nocturno. Se acciona a mano desde la barra, nunca por la preferencia del
+ * sistema: el sistema se pone oscuro por la hora del día, y aquí lo que decide
+ * es la luz de la sala, que solo el profesor ve.
+ *
+ * Los valores de --papel y --tinta deben coincidir con TEMAS en js/tono.js, que
+ * es donde se mide el contraste de la nube.
+ */
+:root[data-tema="oscuro"] {
+  --papel: #1f1f1f;
+  --tinta: #f5f5f5;
+  --tinta-suave: #b4b4b4;
+  --linea: #3d3d3d;
+  --superficie: #2b2b2b;
+  --alerta: #ef6a60;
+  --exito: #6cc48f;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -191,6 +209,12 @@ button {
   padding: 0.75rem 1.25rem;
   border-bottom: 1px solid var(--linea);
   background: var(--papel);
+
+  /* Suelo para el lienzo: por muchos botones que haya y por angosta que sea la
+     ventana, la barra nunca puede quedarse con más de un tercio de la pantalla.
+     Sin este tope, al partirse en varias líneas llegó a dejar el lienzo en 0. */
+  max-height: 34dvh;
+  overflow: auto;
 }
 
 .barra__pregunta {
@@ -274,18 +298,78 @@ button {
   transition: font-size 380ms ease, color 380ms ease, opacity 300ms ease;
 }
 
+/*
+ * Respiración. Va en la propiedad `translate`, que es independiente de
+ * `transform` y se compone con ella: la posición sigue viviendo en `transform`,
+ * así que el movimiento NO puede alterar la colocación. Oscila alrededor de su
+ * sitio y vuelve.
+ *
+ * Cada palabra recibe su duración y su desfase desde JS, para que el conjunto
+ * nunca lata al unísono. Animar `translate` y `scale` lo resuelve el compositor
+ * sin recalcular el diseño de la página: sale gratis durante los 80 minutos de
+ * clase.
+ */
+.palabra {
+  animation: respirar var(--respira-duracion, 6s) ease-in-out var(--respira-desfase, 0s) infinite;
+}
+
+@keyframes respirar {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  25% {
+    translate: 2px -3px;
+  }
+  50% {
+    translate: 0 -1px;
+  }
+  75% {
+    translate: -2px -3px;
+  }
+}
+
 .palabra--entra {
-  animation: aparecer 420ms ease both;
+  animation:
+    aparecer 420ms ease both,
+    respirar var(--respira-duracion, 6s) ease-in-out var(--respira-desfase, 0s) infinite;
+}
+
+/* Pulso cuando alguien acaba de escribir esa palabra. */
+.palabra--sube {
+  animation:
+    latir 600ms ease-out,
+    respirar var(--respira-duracion, 6s) ease-in-out var(--respira-desfase, 0s) infinite;
+}
+
+@keyframes latir {
+  0% {
+    scale: 1;
+  }
+  35% {
+    scale: 1.14;
+  }
+  100% {
+    scale: 1;
+  }
 }
 
 /* Gemelo oculto que sirve de regla. Sin transición ni animación: es lo que
    permite medir el tamaño final de una palabra y no el de mitad de camino. */
+/* Durante el cambio de tema no hay fundido: el color nuevo entra de golpe,
+   junto con el fondo. Ver el manejador de #btn-tema. */
+:root.sin-transicion .palabra {
+  transition: none;
+}
+
 .palabra--regla {
   left: -9999px;
   top: 0;
   transform: none;
   transition: none;
   animation: none;
+  translate: none;
+  scale: none;
   visibility: hidden;
   pointer-events: none;
 }
@@ -293,9 +377,11 @@ button {
 @keyframes aparecer {
   from {
     opacity: 0;
+    scale: 0.85;
   }
   to {
     opacity: 1;
+    scale: 1;
   }
 }
 
@@ -307,9 +393,12 @@ button {
 
 @media (prefers-reduced-motion: reduce) {
   .palabra,
-  .palabra--entra {
+  .palabra--entra,
+  .palabra--sube {
     transition: none;
     animation: none;
+    translate: none;
+    scale: none;
   }
 }
 
@@ -345,6 +434,22 @@ button {
   border: 1px solid var(--linea);
   border-radius: var(--radio);
   z-index: 3;
+}
+
+/*
+ * En modo nocturno la tarjeta del QR NO se invierte. Un QR claro sobre oscuro
+ * es poco fiable para muchas cámaras, y ese QR es la única puerta de entrada a
+ * la sala: no se arriesga por estética. Queda como un recuadro claro sobre el
+ * fondo oscuro, que además lo destaca más.
+ */
+:root[data-tema="oscuro"] .ingreso {
+  background: #ffffff;
+  color: #111111;
+}
+
+:root[data-tema="oscuro"] .ingreso .ingreso__pie,
+:root[data-tema="oscuro"] .ingreso .url-sala {
+  color: #4a4a4a;
 }
 
 /* Mientras se escribe la pregunta, el QR se corre hacia abajo para dejarle
@@ -461,6 +566,72 @@ body.pidiendo .ingreso--grande .codigo-grande {
 .aviso-grande span {
   font-size: clamp(1rem, 3vh, 1.75rem);
   color: var(--tinta-suave);
+}
+
+/* --- Panel de conteos ---------------------------------------------------- */
+
+/* Espeja la tarjeta del QR, en la esquina opuesta. El tamaño manda cuál se
+   repitió más; este panel dice cuántas veces. */
+.conteos {
+  position: absolute;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 3;
+  padding: 0.75rem 1rem;
+  background: var(--papel);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+  min-width: 12rem;
+  max-width: 40vw;
+}
+
+.conteos h2 {
+  margin: 0 0 0.5rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--tinta-suave);
+  font-weight: 700;
+}
+
+.conteos ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.conteos li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.25rem;
+  font-size: clamp(0.95rem, 2.2vh, 1.35rem);
+  line-height: 1.2;
+}
+
+.conteos li span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.conteos li b {
+  font-variant-numeric: tabular-nums;
+  color: var(--tinta-suave);
+}
+
+@media (max-height: 620px) {
+  .conteos {
+    padding: 0.5rem 0.75rem;
+    min-width: 9rem;
+  }
+
+  .conteos li {
+    font-size: 0.9rem;
+  }
 }
 
 /* --- Estado de red ------------------------------------------------------- */

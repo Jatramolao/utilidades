@@ -30,8 +30,12 @@ funciona en ~500 líneas, y su valor a tres años depende de que siga siendo peq
 **Criterio de cierre:** 2-3 entradas en la bitácora. Con eso se decide qué frente se abre, se
 escribe la spec sobre observación en vez de suposición, y recién ahí se codea.
 
-- [ ] **F0-01 · Usar la herramienta en 2-3 clases reales y anotar en `BITACORA.md`.**
-- [ ] **F0-02 · Revisar la bitácora y elegir el primer frente.**
+- [x] **F0-01 · Primera clase real, anotada en `BITACORA.md`** (2026-08-08). Funcionó; el
+      feedback fue todo de la pantalla proyectada.
+- [x] **F0-02 · Frente elegido:** *pantalla proyectada* (dinamismo, conteos, modo nocturno).
+      Spec: `docs/superpowers/specs/2026-08-08-pantalla-proyectada-design.md`. **Implementado.**
+- [ ] **F0-03 · Seguir anotando.** La Fase 0 no se cierra: cada clase nueva va a la bitácora.
+      Es lo que evitó construir un cronómetro que nadie pidió.
 
 ---
 
@@ -49,6 +53,11 @@ escribe la spec sobre observación en vez de suposición, y recién ahí se code
 ## Frentes en espera (no abrir hasta cerrar la Fase 0)
 
 Ordenados por lo que *sospecho* que pesa más. La bitácora manda sobre este orden.
+
+### ✅ Frente D · Pantalla proyectada — hecho 2026-08-08
+- [x] Respiración continua, entrada con escala y latido al subir de conteo.
+- [x] Panel con las 5 más repetidas y su número, al cerrar la votación.
+- [x] Modo nocturno manual, con el QR siempre sobre fondo claro.
 
 ### Frente A · Fricción de sala
 - [ ] **B-03 · Dominio corto.** Hoy se dicta `utilidades-psi.vercel.app/r`, incómodo en voz alta.
