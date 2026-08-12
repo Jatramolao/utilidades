@@ -17,22 +17,56 @@ Cuatro fallos aparecieron al publicar y están corregidos; los cuatro se detalla
 
 ---
 
-## Antes de usarla en clase (bloqueante)
+## 🔵 FASE ACTUAL — Fase 0: usarla y anotar
 
-- [x] **B-00 · Correr `/pruebas` contra el despliegue.** 29/29 en producción, 2026-08-08.
-- [ ] **B-01 · Prueba de humo con 3 teléfonos reales.** Escanear el QR con teléfonos distintos y
-      responder a la vez. El codificador QR está verificado decodificándolo con el detector de
-      códigos del navegador, pero una cámara real en una sala con proyector es otra cosa.
-      **Es lo único que queda para usarla en clase.**
-- [x] **B-02 · Importar el repo en Vercel y conectar Upstash.** Hecho 2026-08-08.
-      Si alguna vez hay que rehacerlo: Root Directory = `nube-palabras`, Upstash desde *Storage*,
-      y redesplegar. Receta completa en el README.
-- [ ] **B-03 · Elegir dominio.** Los alumnos tipean la URL solo como respaldo, pero cuanto más
-      corta, mejor. Hoy es `utilidades-psi.vercel.app/r`, que es largo para dictarlo en voz alta.
+**Decidido con Juan el 2026-08-08.** No se abre ningún frente de construcción hasta tener
+**2 o 3 clases reales anotadas** en [`BITACORA.md`](BITACORA.md).
+
+**Por qué:** todo lo que aparece más abajo como "mejora" lo escribí suponiendo, antes de que la
+herramienta se usara con alumnos. La regla 3 del método —medir antes de opinar— aplica igual
+aquí. Y el riesgo real de este momento no es que falte algo: es que sobre. La herramienta
+funciona en ~500 líneas, y su valor a tres años depende de que siga siendo pequeña.
+
+**Criterio de cierre:** 2-3 entradas en la bitácora. Con eso se decide qué frente se abre, se
+escribe la spec sobre observación en vez de suposición, y recién ahí se codea.
+
+- [ ] **F0-01 · Usar la herramienta en 2-3 clases reales y anotar en `BITACORA.md`.**
+- [ ] **F0-02 · Revisar la bitácora y elegir el primer frente.**
 
 ---
 
-## Fase 2 — Identidad Duoc UC
+## Ya resuelto
+
+- [x] **B-00 · Correr `/pruebas` contra el despliegue.** 29/29 en producción, 2026-08-08.
+- [x] **B-02 · Importar el repo en Vercel y conectar Upstash.** Hecho 2026-08-08.
+      Si alguna vez hay que rehacerlo: Root Directory = `nube-palabras`, Upstash desde *Storage*,
+      y redesplegar. Receta completa en el README.
+- [~] **B-01 · Prueba con teléfonos reales.** Juan hizo una prueba corta el 2026-08-08 y funcionó.
+      La validación de verdad —30 teléfonos a la vez, sala real, proyector— la absorbe la Fase 0.
+
+---
+
+## Frentes en espera (no abrir hasta cerrar la Fase 0)
+
+Ordenados por lo que *sospecho* que pesa más. La bitácora manda sobre este orden.
+
+### Frente A · Fricción de sala
+- [ ] **B-03 · Dominio corto.** Hoy se dicta `utilidades-psi.vercel.app/r`, incómodo en voz alta.
+      El único ítem de esta lista que no es una suposición: la fricción es evidente.
+- [ ] **A-01 · Cronómetro en pantalla.** "Tienen 60 segundos". ~40 líneas, solo cliente.
+      ⚠️ Hipótesis mía, sin observar. Puede que no lo necesites nunca.
+- [ ] **A-02 · Que el alumno vea la nube en su teléfono** tras responder, con un botón que
+      consulta una vez (sin sondeo de fondo, que sigue rechazado).
+      ⚠️ Hipótesis mía, sin observar.
+
+### Frente C · Calidad de lo proyectado
+- [ ] **M-01 · Fusionar dos términos a mano.** Resuelve singular/plural, que la normalización se
+      niega a adivinar. Se valida solo si la bitácora muestra el problema.
+- [ ] **M-04 · Palabras vacías**, para cuando alguien responde con una frase. Igual: solo si pasa.
+
+---
+
+## Frente B · Identidad Duoc UC
 
 - [ ] **F2-01 · Conseguir la paleta institucional.** Del manual de marca de Juan o extraída de
       duoc.cl y confirmada por él. **No inventar códigos.**
@@ -43,17 +77,19 @@ Cuatro fallos aparecieron al publicar y están corregidos; los cuatro se detalla
 
 ---
 
-## Mejoras admitidas (sin fecha)
+## Sin fecha, fuera del primer corte
 
-- [ ] **M-01 · Fusionar dos términos a mano.** Arrastrar una palabra sobre otra en el proyector
-      para unirlas. Resuelve el caso singular/plural que la normalización automática se niega a
-      adivinar.
 - [ ] **M-02 · Auditoría de accesibilidad.** Navegación por teclado en la nube, foco visible,
-      lectura de la nube por lector de pantalla.
-- [ ] **M-03 · Exportar la nube como imagen.** Baja prioridad: la captura de pantalla del sistema
-      ya lo resuelve.
-- [ ] **M-04 · Lista de palabras vacías** (artículos, preposiciones) para preguntas donde alguien
-      responde con una frase.
+      lectura por lector de pantalla. Importante, no urgente.
+- [ ] **M-03 · Exportar la nube como imagen.** La captura de pantalla del sistema ya lo resuelve.
+
+---
+
+## Regla de gobierno (2026-08-08)
+
+Si aparece una necesidad docente nueva que **no sea una nube de palabras**, se construye como
+**otra herramienta pequeña en `utilidades/`**, nunca como una función más de esta. Es lo que
+impide que una app de dos pantallas se convierta en una plataforma que haya que mantener.
 
 ---
 
