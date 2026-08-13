@@ -461,6 +461,51 @@ button {
   border: 1px solid var(--linea);
   border-radius: var(--radio);
   flex: none;
+  cursor: zoom-in;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.ingreso--esquina:hover,
+.ingreso--esquina:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+}
+
+.ingreso--esquina:focus-visible {
+  outline: 3px solid var(--tinta);
+  outline-offset: 3px;
+}
+
+/* La vista grande solo se cierra con clic cuando está ampliada a propósito;
+   antes de lanzar la pregunta no hay nada a lo que volver. */
+.ingreso--ampliado {
+  cursor: zoom-out;
+}
+
+.ingreso__pista {
+  margin: 0;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tinta-suave);
+  text-align: center;
+}
+
+.ingreso__pista--cerrar {
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+}
+
+/* Antes de lanzar la pregunta no se puede volver a ninguna nube: la pista de
+   cierre solo tiene sentido cuando el QR se amplió desde la esquina. */
+.ingreso--grande:not(.ingreso--ampliado) .ingreso__pista--cerrar {
+  display: none;
+}
+
+@media (max-height: 620px) {
+  .ingreso--esquina .ingreso__pista {
+    display: none;
+  }
 }
 
 /*

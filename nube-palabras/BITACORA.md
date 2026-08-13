@@ -38,6 +38,12 @@ ahí sí vale la pena construir.
 
 <!-- Pega aquí cada clase, la más reciente arriba. -->
 
+### 2026-08-13 · pruebas de uso (sin curso)
+
+**4. Qué quise hacer y no pude:** con la pregunta ya lanzada, el QR queda pequeño en la esquina
+y no había forma de volver a mostrarlo grande para alguien que llega tarde o no alcanzó a
+escanear. → Resuelto: la tarjeta se pulsa y ocupa la pantalla; vuelve con otro clic o con Esc.
+
 ### 2026-08-08 · primera clase real · (curso por anotar)
 
 **Pregunta que lancé:** (por anotar)

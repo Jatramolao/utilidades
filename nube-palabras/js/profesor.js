@@ -24,6 +24,7 @@ let pregunta = null; // { n, texto, estado }
 let sondeo = null;
 let oculta = false;
 let conteos = false;
+let qrAmpliado = false;
 let seleccionada = null;
 
 const nube = crearNube($('nube'), { alSeleccionar: proponerEliminar });
@@ -123,10 +124,30 @@ function mostrarSala() {
   pintarEstadoPregunta();
 }
 
+/**
+ * Decide cuál de las dos vistas del QR se muestra.
+ *
+ * Sin pregunta activa, el QR manda la pantalla. Con pregunta, se va a la
+ * esquina — salvo que Juan lo amplíe para el que llega tarde, que es el caso
+ * que pidió tras usarla en clase.
+ */
+function pintarIngresoVisible() {
+  const hayPregunta = pregunta !== null;
+  const grande = !hayPregunta || qrAmpliado;
+  $('ingreso-grande').hidden = !grande;
+  $('ingreso-esquina').hidden = grande;
+  $('ingreso-grande').classList.toggle('ingreso--ampliado', qrAmpliado);
+  $('ingreso-esquina').setAttribute('aria-expanded', String(qrAmpliado));
+}
+
+function ampliarQr(ampliar) {
+  qrAmpliado = ampliar && pregunta !== null;
+  pintarIngresoVisible();
+}
+
 function pintarEstadoPregunta() {
   const hayPregunta = pregunta !== null;
-  $('ingreso-grande').hidden = hayPregunta;
-  $('ingreso-esquina').hidden = !hayPregunta;
+  pintarIngresoVisible();
   $('pregunta-actual').textContent = pregunta?.texto ?? '';
   $('btn-cerrar').hidden = !hayPregunta || pregunta.estado === 'cerrada';
   $('btn-ocultar').hidden = !hayPregunta;
@@ -193,8 +214,10 @@ async function lanzarPregunta(texto) {
   nube.limpiar();
   oculta = false;
   $('btn-ocultar').textContent = 'Ocultar nube';
-  // Pregunta nueva, pantalla limpia: los conteos vuelven a esperar al cierre.
+  // Pregunta nueva, pantalla limpia: los conteos vuelven a esperar al cierre y
+  // el QR vuelve a su esquina.
   alternarConteos(false);
+  qrAmpliado = false;
   guardarSala();
   pintarEstadoPregunta();
   iniciarSondeo();
@@ -387,6 +410,18 @@ $('btn-conteos').addEventListener('click', () => {
   sondear();
 });
 
+// El QR de la esquina se amplía a pantalla completa para el que llega tarde, y
+// vuelve con otro clic o con Esc. Se usa la misma vista grande de antes de
+// lanzar la pregunta: no hay una segunda pantalla que mantener.
+$('ingreso-esquina').addEventListener('click', () => ampliarQr(true));
+$('ingreso-grande').addEventListener('click', () => ampliarQr(false));
+
+$('ingreso-esquina').addEventListener('keydown', (evento) => {
+  if (evento.key !== 'Enter' && evento.key !== ' ') return;
+  evento.preventDefault();
+  ampliarQr(true);
+});
+
 $('btn-tema').addEventListener('click', () => {
   const oscuro = document.documentElement.dataset.tema === 'oscuro';
 
@@ -422,6 +457,7 @@ $('form-pregunta').addEventListener('submit', async (evento) => {
 document.addEventListener('keydown', (evento) => {
   if (evento.key !== 'Escape') return;
   cancelarModeracion();
+  if (qrAmpliado) ampliarQr(false);
   if (!$('velo-pregunta').hidden && pregunta) cerrarDialogoPregunta();
 });
 

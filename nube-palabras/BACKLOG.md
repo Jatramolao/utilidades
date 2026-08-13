@@ -59,10 +59,13 @@ escribe la spec sobre observación en vez de suposición, y recién ahí se code
 
 Ordenados por lo que *sospecho* que pesa más. La bitácora manda sobre este orden.
 
-### ✅ Frente D · Pantalla proyectada — hecho 2026-08-08
+### ✅ Frente D · Pantalla proyectada — hecho 2026-08-08 / 2026-08-13
 - [x] Respiración continua, entrada con escala y latido al subir de conteo.
 - [x] Panel con las 5 más repetidas y su número, al cerrar la votación.
 - [x] Modo nocturno manual, con el QR siempre sobre fondo claro.
+- [x] **QR ampliable** (2026-08-13, pedido tras usarla): la tarjeta de la esquina se pulsa y
+      ocupa la pantalla completa para el que llega tarde; vuelve con otro clic o con Esc, y sola
+      al lanzar la pregunta siguiente. Reusa la vista grande que ya existía.
 
 ### Frente A · Fricción de sala
 - [x] **B-03 · Dominio corto.** Resuelto por Juan: `nubepalabras.vercel.app/r`. Es un alias del

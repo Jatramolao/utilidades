@@ -61,6 +61,9 @@
           <p id="codigo-grande" class="codigo-grande"></p>
           <p id="url-grande" class="url-sala"></p>
           <p class="ingreso__pie">Escanea el QR o entra con el código</p>
+          <p class="ingreso__pista ingreso__pista--cerrar">
+            Pulsa o presiona Esc para volver a la nube
+          </p>
         </div>
 
         <!--
@@ -75,11 +78,24 @@
             <ol id="conteos-lista"></ol>
           </aside>
 
-          <!-- Con pregunta activa: el QR queda a mano para los que llegan tarde -->
-          <aside id="ingreso-esquina" class="ingreso ingreso--esquina" hidden>
+          <!--
+            Con pregunta activa el QR queda a mano para los que llegan tarde, y
+            se amplía a pantalla completa al pulsarlo. No es un <button> porque
+            su contenido son párrafos, que no pueden ir dentro de uno.
+          -->
+          <aside
+            id="ingreso-esquina"
+            class="ingreso ingreso--esquina"
+            role="button"
+            tabindex="0"
+            aria-expanded="false"
+            aria-label="Ampliar el código QR a pantalla completa"
+            hidden
+          >
             <div id="qr-chico" class="qr"></div>
             <p id="codigo-chico" class="codigo-grande"></p>
             <p id="url-chica" class="ingreso__pie"></p>
+            <p class="ingreso__pista">Pulsa para ampliar</p>
           </aside>
         </div>
 

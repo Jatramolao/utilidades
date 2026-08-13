@@ -222,6 +222,32 @@ async function correr() {
   noSeVe('El aviso de "sin respuestas" se retira', 'sin-respuestas');
   seVeDeVerdad('El QR de esquina sigue a la vista con la nube llena', 'qr-chico');
 
+  // --- 3a. Ampliar el QR para el que llega tarde --------------------------
+  $('ingreso-esquina').click();
+  await esperar(400);
+  seVeDeVerdad('Al pulsar la esquina, el QR se ve en grande', 'qr-grande');
+  anotar($('ingreso-esquina').hidden, 'La tarjeta de la esquina se retira mientras está ampliado');
+  anotar(
+    $('ingreso-grande').classList.contains('ingreso--ampliado'),
+    'La vista grande se marca como ampliada',
+  );
+
+  $('ingreso-grande').click();
+  await esperar(400);
+  seVeDeVerdad('Al pulsar de nuevo, el QR vuelve a la esquina', 'qr-chico');
+  anotar($('ingreso-grande').hidden, 'La vista grande se retira al volver');
+  anotar(
+    doc().querySelectorAll('.palabra:not(.palabra--regla)').length > 0,
+    'La nube sigue ahí después de ampliar y volver',
+  );
+
+  // Y con Esc, que es lo que uno aprieta sin pensar.
+  $('ingreso-esquina').click();
+  await esperar(300);
+  doc().dispatchEvent(new (ven().KeyboardEvent)('keydown', { key: 'Escape', bubbles: true }));
+  await esperar(400);
+  seVeDeVerdad('Esc también devuelve el QR a la esquina', 'qr-chico');
+
   // --- 3b. La grafía mostrada se corrige sola -----------------------------
   // Se muestra la forma que más alumnos escribieron, así que puede cambiar con
   // cada voto nuevo. En producción quedaba fija la primera que llegó, porque el
@@ -355,6 +381,10 @@ async function correr() {
   await esperar(1200);
 
   anotar(codigoDeLaSala() === codigo, 'El código de sala NO cambia entre preguntas', codigoDeLaSala());
+  anotar(
+    !$('ingreso-grande').classList.contains('ingreso--ampliado'),
+    'Al lanzar una pregunta nueva el QR vuelve solo a la esquina',
+  );
   anotar(doc().querySelectorAll('.palabra:not(.palabra--regla)').length === 0, 'La nube arranca vacía en la pregunta nueva');
   anotar(!declaradoVisible('insignia-cerrada'), 'La marca de "cerrada" se apaga');
   seVeDeVerdad('El QR sigue a la vista tras lanzar la segunda pregunta', 'qr-chico');
