@@ -67,6 +67,26 @@ Ordenados por lo que *sospecho* que pesa más. La bitácora manda sobre este ord
       ocupa la pantalla completa para el que llega tarde; vuelve con otro clic o con Esc, y sola
       al lanzar la pregunta siguiente. Reusa la vista grande que ya existía.
 
+### 🟡 Frente E · Depuración con IA — diseñado 2026-08-14, sin implementar
+
+Spec: [`docs/superpowers/specs/2026-08-14-depuracion-ia-design.md`](docs/superpowers/specs/2026-08-14-depuracion-ia-design.md).
+
+Botón **Depurar** en la pantalla proyectada, con la votación cerrada. Manda pregunta + respuestas
+a `claude-haiku-4-5`, recibe correcciones de ortografía y cercanías, funde variantes en la nube y
+agrega una línea de "cerca:" al panel de conteos. En memoria, sin tocar Redis. Cero dependencias
+nuevas: `fetch` directo, igual que `store-redis.js`. ~US$0,002 por pulsada.
+
+⚠️ **Este frente no salió de la bitácora: lo pidió Juan directamente.** Se anota así a propósito,
+porque la Fase 0 existe justamente para distinguir lo observado de lo supuesto. Resuelve de paso
+`M-01` y parte de `M-04`, que sí llevaban tiempo esperando evidencia.
+
+- [ ] **E-00 · BLOQUEANTE: confirmar si Duoc UC tiene política** sobre enviar producción de
+      estudiantes a un servicio de IA. Si la hay, manda sobre la spec entera. Solo Juan puede
+      responderlo.
+- [ ] **E-01 · `ANTHROPIC_API_KEY` como variable de entorno en Vercel.** Nunca en el cliente.
+- [ ] **E-02 · Implementar** `api/_lib/ia.js`, `js/plan.js`, la ruta y la UI. Ver spec §4-§8.
+- [ ] **E-03 · Pruebas** puras + una llamada real en el ciclo de `/pruebas`. Ver spec §10.
+
 ### Frente A · Fricción de sala
 - [x] **B-03 · Dominio corto.** Resuelto por Juan: `nubepalabras.vercel.app/r`. Es un alias del
       mismo proyecto `utilidades`, no un proyecto aparte.
