@@ -67,30 +67,38 @@ Ordenados por lo que *sospecho* que pesa más. La bitácora manda sobre este ord
       ocupa la pantalla completa para el que llega tarde; vuelve con otro clic o con Esc, y sola
       al lanzar la pregunta siguiente. Reusa la vista grande que ya existía.
 
-### 🟡 Frente E · Depuración con IA — diseñado 2026-08-14, sin implementar
+### 🟡 Frente E · Agrupación con IA — diseñado 2026-08-14, sin implementar
 
-Spec: [`docs/superpowers/specs/2026-08-14-depuracion-ia-design.md`](docs/superpowers/specs/2026-08-14-depuracion-ia-design.md).
+Spec: [`docs/superpowers/specs/2026-08-14-agrupacion-ia-design.md`](docs/superpowers/specs/2026-08-14-agrupacion-ia-design.md).
 
-Botón **Depurar** en la pantalla proyectada, con la votación cerrada. Manda pregunta + respuestas
-a `claude-haiku-4-5`, recibe correcciones de ortografía y cercanías, funde variantes en la nube y
-agrega una línea de "cerca:" al panel de conteos. En memoria, sin tocar Redis. Cero dependencias
-nuevas: `fetch` directo, igual que `store-redis.js`. ~US$0,002 por pulsada.
+Botón **Agrupar** en la pantalla proyectada, con la votación cerrada. Manda pregunta + respuestas
+a `claude-sonnet-5` y recibe **grupos**: conjuntos de respuestas que dicen lo mismo. La nube pasa a
+mostrar un término por grupo con la suma de los conteos; el panel gana una línea de "reúne:"; un
+botón vuelve a la nube cruda. En memoria, sin tocar Redis. Cero dependencias nuevas: `fetch`
+directo, igual que `store-redis.js`. ~US$0,008 por pulsada.
+
+**El problema que resuelve:** cuando los alumnos responden con frases —que es lo que pasó en la
+primera clase real— casi todas son distintas, los conteos se van a 1 y la nube deja de comunicar.
+Agrupar la vuelve legible. Cubre también el caso de palabras sueltas, donde los grupos son
+variantes de escritura y sinónimos, así que el profesor no necesita anticipar cuál va a pasar.
 
 **Sirve a cualquier ramo, no solo fotografía.** El único contexto es el texto de la pregunta. Por
-eso la validación protege siglas (`GET`/`SET`, `PUT`/`POST`) y exige 5 caracteres mínimos, y el
-prompt distingue una errata de un término en inglés («array» y «arreglo» son cercanía, no
-corrección).
+eso la validación no deja que un grupo contenga dos siglas (`GET`+`SET`, `TCP`+`UDP`) y el prompt
+aclara que un término en inglés y su equivalente en castellano sí van juntos.
 
 ⚠️ **Este frente no salió de la bitácora: lo pidió Juan directamente.** Se anota así a propósito,
 porque la Fase 0 existe justamente para distinguir lo observado de lo supuesto. Resuelve de paso
-`M-01` y parte de `M-04`, que sí llevaban tiempo esperando evidencia.
+`M-01` y `M-04`, que sí llevaban tiempo esperando evidencia.
 
 - [ ] **E-00 · BLOQUEANTE: confirmar si Duoc UC tiene política** sobre enviar producción de
       estudiantes a un servicio de IA. Si la hay, manda sobre la spec entera. Solo Juan puede
       responderlo.
+- [ ] **E-0½ · Anotar los datos de una clase.** Cuántas respuestas distintas salieron de cuántos
+      alumnos. Es el único número que confirma o desmiente la premisa entera de este frente — ver
+      spec §15. Vale más que cualquier ajuste al diseño.
 - [ ] **E-01 · `ANTHROPIC_API_KEY` como variable de entorno en Vercel.** Nunca en el cliente.
-- [ ] **E-02 · Implementar** `api/_lib/ia.js`, `js/plan.js`, la ruta y la UI. Ver spec §4-§8.
-- [ ] **E-03 · Pruebas** puras + una llamada real en el ciclo de `/pruebas`. Ver spec §10.
+- [ ] **E-02 · Implementar** `api/_lib/ia.js`, `js/plan.js`, la ruta y la UI. Ver spec §5-§9.
+- [ ] **E-03 · Pruebas** puras + una llamada real en el ciclo de `/pruebas`. Ver spec §11.
 
 ### Frente A · Fricción de sala
 - [x] **B-03 · Dominio corto.** Resuelto por Juan: `nubepalabras.vercel.app/r`. Es un alias del
