@@ -76,6 +76,11 @@ a `claude-haiku-4-5`, recibe correcciones de ortografía y cercanías, funde var
 agrega una línea de "cerca:" al panel de conteos. En memoria, sin tocar Redis. Cero dependencias
 nuevas: `fetch` directo, igual que `store-redis.js`. ~US$0,002 por pulsada.
 
+**Sirve a cualquier ramo, no solo fotografía.** El único contexto es el texto de la pregunta. Por
+eso la validación protege siglas (`GET`/`SET`, `PUT`/`POST`) y exige 5 caracteres mínimos, y el
+prompt distingue una errata de un término en inglés («array» y «arreglo» son cercanía, no
+corrección).
+
 ⚠️ **Este frente no salió de la bitácora: lo pidió Juan directamente.** Se anota así a propósito,
 porque la Fase 0 existe justamente para distinguir lo observado de lo supuesto. Resuelve de paso
 `M-01` y parte de `M-04`, que sí llevaban tiempo esperando evidencia.

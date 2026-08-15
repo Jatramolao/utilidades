@@ -20,12 +20,25 @@ respuestas a un modelo de lenguaje y recibe dos cosas:
 
 Nada más. En particular **no** juzga si una respuesta es correcta.
 
+### El dominio no está fijado
+
+La herramienta es de docencia y **el contenido cambia según el ramo**. Los ejemplos de esta spec
+alternan a propósito entre fotografía e ingeniería en informática, que son los dos que Juan dicta
+hoy, pero nada del diseño asume un dominio: la única fuente de contexto es el texto de la pregunta
+que el propio profesor escribió.
+
+Esto tiene una consecuencia de diseño real, no decorativa: en informática las respuestas van a
+traer **siglas** (API, SQL, HTTP, TCP), **términos técnicos en inglés** conviviendo con su
+equivalente en castellano («array» y «arreglo», «loop» y «bucle»), y a veces **tokens de código**
+(`for`, `O(n)`, `null`). Las reglas del §6 y del §7 están escritas para eso.
+
 ### Por qué esto y no otra cosa
 
 `normalizar.js` se niega a fusionar singular y plural porque destrozaría «análisis», «crisis»,
 «síntesis» y «lunes» — y sin contexto es la decisión correcta. Un modelo que ve la pregunta sí
-puede distinguir «lente» de «lentes» en una pregunta de óptica. Esta es la única función del
-sistema que necesita entender el contenido, y por eso es la única que justifica un modelo.
+puede distinguir «lente» de «lentes» en óptica, o «arreglo» de «arreglos» en estructuras de datos.
+Esta es la única función del sistema que necesita entender el contenido, y por eso es la única que
+justifica un modelo.
 
 Resuelve además, de paso, dos ítems que estaban en el backlog sin fecha: `M-01` (fusionar dos
 términos a mano) y parte de `M-04` (palabras vacías).
@@ -163,18 +176,25 @@ tocar lógica.
 > refieren a lo mismo con otras palabras, o son parte del mismo concepto dentro de esta pregunta.
 > Solo podés nombrar respuestas que estén en la lista.
 >
-> Cuatro reglas:
+> Seis reglas:
 > - Nunca juzgues si una respuesta es correcta o incorrecta. No es tu tarea, y esto se proyecta
 >   delante del curso.
 > - Corregí ortografía solo cuando estés seguro. Ante la duda, dejá la respuesta como está: una
 >   nube con una errata es mejor que una nube con una palabra que nadie escribió.
 > - Si dos respuestas son conceptos distintos, no las juntes. Que compartan tema no las hace lo
 >   mismo.
+> - Las respuestas pueden traer siglas (API, SQL, HTTP), términos técnicos en inglés, nombres de
+>   herramientas o lenguajes, y fragmentos de código. No los corrijas ni los traduzcas. Dos siglas
+>   parecidas casi nunca son la misma: GET y SET, PUT y POST son cosas distintas.
+> - Un término en inglés y su equivalente en castellano no son una errata: «array» y «arreglo»,
+>   «loop» y «bucle», «string» y «cadena» son dos nombres del mismo concepto. Eso va en cercanías,
+>   nunca en correcciones.
 > - Podés devolver listas vacías. Es una respuesta válida y frecuente.
 
 ### Mensaje del usuario
 
-Armado por el servidor con lo que hay en Redis:
+Armado por el servidor con lo que hay en Redis. Dos ejemplos de ramos distintos, para dejar claro
+que el prompt no sabe de qué materia se trata más allá de lo que dice la pregunta:
 
 ```
 Pregunta proyectada: "¿Qué controla la profundidad de campo?"
@@ -185,6 +205,22 @@ apertura — 7
 diafrahma — 3
 distancia al sujeto — 2
 ```
+
+```
+Pregunta proyectada: "¿Qué estructura usarías para una cola de tareas?"
+
+Respuestas y cuántas veces apareció cada una:
+cola — 9
+queue — 6
+arreglo — 4
+lista enlazada — 3
+cola de prioridad — 2
+arreglo dinamico — 2
+```
+
+En el segundo caso lo correcto es: **una sola corrección** («arreglo dinamico» → «arreglo
+dinámico», tilde faltante) y **una cercanía** («cola» cerca de «queue» y «cola de prioridad»).
+«arreglo» y «lista enlazada» son estructuras distintas y no se tocan.
 
 ### Por qué está escrito así
 
@@ -219,18 +255,40 @@ lenta porque el esquema se compila; después queda en caché 24 horas.
 
 ## 7. Validación del plan
 
-Tres reglas en el servidor, antes de devolver nada. Son lo que impide que aparezca en el proyector
-algo que nadie escribió.
+Cuatro reglas en el servidor, antes de devolver nada. Son lo que impide que aparezca en el
+proyector algo que nadie escribió. **Solo aplican a `correcciones`**: las `cercanias` no reescriben
+nada, así que les basta con la regla 1.
 
 1. **Existencia.** Toda `variante`, todo `termino` y todo elemento de `cerca` tiene que existir en
    los conteos reales. Lo que no exista se descarta en silencio.
-2. **Distancia de edición.** `correcta` tiene que estar a ≤3 caracteres de distancia de la grafía
-   de `variante`, o ≤40% de su largo, lo que sea mayor. Eso la obliga a ser una corrección de
-   ortografía y no una reescritura: puede convertir «diafrahma» en «diafragma», no en «obturador».
-3. **Sin cadenas ni ciclos.** Una `variante` no puede ser a su vez `correcta` de otra. Si el modelo
+2. **Siglas intocables.** Si la grafía original de `variante` es toda mayúsculas y tiene 2
+   caracteres o más, la corrección se descarta. Bloquea de raíz el caso que más va a aparecer en
+   informática: `GET`→`SET`, `PUT`→`POST`, `TCP`→`UDP` son sustituciones baratísimas en distancia
+   de edición y significan cosas distintas.
+3. **Largo mínimo y distancia relativa.** La `variante` tiene que tener **≥5 caracteres**, y la
+   distancia de Damerau-Levenshtein entre `variante` y `correcta` tiene que ser **≤2 y a la vez
+   ≤25% del largo de la variante**. Se usa Damerau —no Levenshtein— porque cuenta una
+   transposición como un solo error, que es la errata más común al tipear rápido en el teléfono.
+
+   | Caso | Largo | Distancia | Tope | ¿Pasa? |
+   |---|---|---|---|---|
+   | `diafrahma` → `diafragma` | 9 | 1 | 2 | ✅ |
+   | `arreglo dinamico` → `arreglo dinámico` | 16 | 1 | 2 | ✅ |
+   | `polimofismo` → `polimorfismo` | 11 | 1 | 2 | ✅ |
+   | `diafrahma` → `obturador` | 9 | 7 | 2 | ❌ reescritura |
+   | `array` → `arreglo` | 5 | 4 | 1 | ❌ es cercanía, no errata |
+   | `int` → `and` | 3 | — | — | ❌ menos de 5 caracteres |
+
+4. **Sin cadenas ni ciclos.** Una `variante` no puede ser a su vez `correcta` de otra. Si el modelo
    propone A→B y B→C, se descarta la segunda. Evita que la fusión dependa del orden.
 
 Si tras validar no queda nada, se devuelve `{"correcciones": [], "cercanias": []}` con estado 200.
+
+**Lo que estas reglas no cubren.** Dos palabras reales, largas y a un carácter de distancia
+—`stack` y `slack`, `mapa` y `capa`— pasan la validación. Ahí la única defensa es el prompt, que
+tiene la pregunta como contexto y la instrucción de no corregir ante la duda. Es un riesgo
+aceptado: bloquearlo exigiría un tope de distancia tan bajo que también rechazaría las erratas
+verdaderas. Si aparece en clase, va a la bitácora y se ajusta con evidencia, no antes.
 
 ---
 
@@ -285,6 +343,11 @@ predecible que una espera silenciosa que se alarga.
 - El orden resultante es estable ante empates.
 - La validación descarta términos que no están en los conteos.
 - La validación descarta una `correcta` demasiado lejana («diafrahma» → «obturador»).
+- La validación descarta siglas: `GET`→`SET`, `PUT`→`POST`, `TCP`→`UDP`.
+- La validación descarta variantes de menos de 5 caracteres.
+- La validación descarta «array» → «arreglo»: es cercanía, no errata.
+- La validación acepta «arreglo dinamico» → «arreglo dinámico» y «polimofismo» → «polimorfismo».
+- Damerau cuenta una transposición como un error, no como dos.
 - La validación descarta cadenas A→B→C.
 - Un plan que queda vacío tras validar devuelve 200, no error.
 - `rutas.test.js`: 403 sin token de profesor; 404 con sala inexistente; tope por sala.
