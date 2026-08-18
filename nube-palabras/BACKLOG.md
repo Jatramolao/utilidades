@@ -67,49 +67,45 @@ Ordenados por lo que *sospecho* que pesa más. La bitácora manda sobre este ord
       ocupa la pantalla completa para el que llega tarde; vuelve con otro clic o con Esc, y sola
       al lanzar la pregunta siguiente. Reusa la vista grande que ya existía.
 
-### 🟡 Frente E · Análisis semántico y lectura contra objetivos — diseñado 2026-08-14
+### 🟡 Frente E · Lectura semántica — Fase 1 diseñada 2026-08-14
 
 Spec: [`docs/superpowers/specs/2026-08-14-analisis-semantico-design.md`](docs/superpowers/specs/2026-08-14-analisis-semantico-design.md).
 
-**Capa adicional sobre la nube que ya existe.** No toca nada del lado del alumno: mismo QR, mismo
-formulario, mismas tres respuestas. No hay persistencia nueva — los objetivos viven en el hash
-`sala:{codigo}` con el mismo TTL de 6 horas.
+**Capa adicional sobre la nube. No toca nada del lado del alumno y no escribe nada en Redis.**
 
-Botón **Analizar** con la votación cerrada. Manda pregunta, respuestas y objetivos de la clase a
-`claude-sonnet-5` y recibe tres cosas: **grupos** (respuestas que dicen lo mismo, aunque estén
-escritas distinto), **conexiones** entre grupos, y una **lectura** de dos o tres frases que compara
-lo respondido contra los objetivos. En memoria, sin tocar Redis. Cero dependencias nuevas.
-~US$0,013 por pulsada.
+Botón **Lectura** con la votación cerrada. Manda la pregunta y todas las respuestas con sus conteos
+a `claude-sonnet-5` y abre un panel con dos o tres frases sobre **qué está diciendo el curso**. Se
+cierra con clic o Esc, igual que el QR ampliado. La nube no se toca: ni un píxel. ~US$0,004 por
+pulsada.
 
-**Dos claves del diseño:** el modelo infiere a qué objetivo apunta *esa* pregunta y solo reporta
-sobre ese —si no, las cinco preguntas de la clase dirían "faltaron los objetivos 2, 3 y 4"—; y el
-mapa usa disposición determinista en anillo, no simulación de fuerzas, porque lo proyectado no se
-mueve.
+**El riesgo del que se defiende el diseño:** que el panel diga "la más votada fue «diafragma» con
+7", que es la nube dicha en prosa. El prompt le prohíbe listar y decir cuál ganó, y le pide lo que
+la nube no puede mostrar — convergencia entre respuestas escritas distinto, división del curso,
+una idea que rodean sin nombrar, o una minoría que aporta algo. Con una regla que pesa tanto como
+esas cuatro: **si no hay patrón claro, decirlo y terminar** — sin eso, un modelo al que le pedís
+interpretar le encuentra sentido al ruido.
 
-⚠️ **Este frente no salió de la bitácora: lo pidió Juan directamente.** Se anota así a propósito,
-porque la Fase 0 existe para distinguir lo observado de lo supuesto. Resuelve de paso `M-01` y
-`M-04`, que sí llevaban tiempo esperando evidencia.
+Fases 2 a 4 (agrupación en la nube, objetivos de aprendizaje, mapa de conexiones) quedan diseñadas
+en la §14 de la spec, sin construir. La Fase 1 no cierra ninguna de esas puertas.
 
-#### Bloqueantes
+⚠️ **Este frente no salió de la bitácora: lo pidió Juan directamente.**
+
+#### Bloqueante
 
 - [ ] **E-00 · Confirmar si Duoc UC tiene política** sobre enviar producción de estudiantes a un
       servicio de IA. Si la hay, manda sobre la spec entera. Solo Juan puede responderlo.
-- [ ] **E-0½ · Anotar los datos de una clase.** Cuántas respuestas distintas salieron de cuántos
-      alumnos — ver spec §18. Decide si la agrupación aporta mucho o poco. La lectura contra
-      objetivos sirve igual en los dos escenarios, así que este dato no bloquea la Fase 1 entera.
 
-#### Fase 1 — lo que se puede usar en clase
+#### Fase 1
 
 - [ ] **E-01 · `ANTHROPIC_API_KEY` como variable de entorno en Vercel.** Nunca en el cliente.
-- [ ] **E-02 · Objetivos de la clase:** diálogo, campo `objetivos` en el hash de la sala, ruta
-      `POST /api/sala/:codigo/objetivos`. Ver spec §6.
-- [ ] **E-03 · El análisis:** `api/_lib/ia.js`, ruta `analizar`, validación. Ver spec §7-§9.
-- [ ] **E-04 · En pantalla:** `js/plan.js`, botón Analizar, deshacer, panel de lectura. Ver §10.
-- [ ] **E-05 · Pruebas** puras + una llamada real en el ciclo de `/pruebas`. Ver spec §14.
+- [ ] **E-02 · `api/_lib/ia.js`** y la ruta `POST /api/sala/:codigo/pregunta/:n/lectura`. Ver §6-§8.
+- [ ] **E-03 · Botón y panel** en `index.html`, `js/profesor.js`, `css/estilo.css`. Ver §9.
+- [ ] **E-04 · Pruebas** puras + una llamada real en el ciclo de `/pruebas`. Ver §12.
 
-#### Fase 2 — el mapa
+#### Antes de abrir la Fase 2
 
-- [ ] **E-06 · `js/mapa.js`:** disposición determinista en anillo y pintado en SVG. Ver spec §11.
+- [ ] **E-05 · Anotar los datos de una clase.** Cuántas respuestas distintas salieron de cuántos
+      alumnos — ver spec §15. Decide si agrupar aporta mucho o poco. **No bloquea la Fase 1.**
 
 ### Frente A · Fricción de sala
 - [x] **B-03 · Dominio corto.** Resuelto por Juan: `nubepalabras.vercel.app/r`. Es un alias del
