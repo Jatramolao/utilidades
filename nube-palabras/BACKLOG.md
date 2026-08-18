@@ -67,38 +67,49 @@ Ordenados por lo que *sospecho* que pesa más. La bitácora manda sobre este ord
       ocupa la pantalla completa para el que llega tarde; vuelve con otro clic o con Esc, y sola
       al lanzar la pregunta siguiente. Reusa la vista grande que ya existía.
 
-### 🟡 Frente E · Agrupación con IA — diseñado 2026-08-14, sin implementar
+### 🟡 Frente E · Análisis semántico y lectura contra objetivos — diseñado 2026-08-14
 
-Spec: [`docs/superpowers/specs/2026-08-14-agrupacion-ia-design.md`](docs/superpowers/specs/2026-08-14-agrupacion-ia-design.md).
+Spec: [`docs/superpowers/specs/2026-08-14-analisis-semantico-design.md`](docs/superpowers/specs/2026-08-14-analisis-semantico-design.md).
 
-Botón **Agrupar** en la pantalla proyectada, con la votación cerrada. Manda pregunta + respuestas
-a `claude-sonnet-5` y recibe **grupos**: conjuntos de respuestas que dicen lo mismo. La nube pasa a
-mostrar un término por grupo con la suma de los conteos; el panel gana una línea de "reúne:"; un
-botón vuelve a la nube cruda. En memoria, sin tocar Redis. Cero dependencias nuevas: `fetch`
-directo, igual que `store-redis.js`. ~US$0,008 por pulsada.
+**Capa adicional sobre la nube que ya existe.** No toca nada del lado del alumno: mismo QR, mismo
+formulario, mismas tres respuestas. No hay persistencia nueva — los objetivos viven en el hash
+`sala:{codigo}` con el mismo TTL de 6 horas.
 
-**El problema que resuelve:** cuando los alumnos responden con frases —que es lo que pasó en la
-primera clase real— casi todas son distintas, los conteos se van a 1 y la nube deja de comunicar.
-Agrupar la vuelve legible. Cubre también el caso de palabras sueltas, donde los grupos son
-variantes de escritura y sinónimos, así que el profesor no necesita anticipar cuál va a pasar.
+Botón **Analizar** con la votación cerrada. Manda pregunta, respuestas y objetivos de la clase a
+`claude-sonnet-5` y recibe tres cosas: **grupos** (respuestas que dicen lo mismo, aunque estén
+escritas distinto), **conexiones** entre grupos, y una **lectura** de dos o tres frases que compara
+lo respondido contra los objetivos. En memoria, sin tocar Redis. Cero dependencias nuevas.
+~US$0,013 por pulsada.
 
-**Sirve a cualquier ramo, no solo fotografía.** El único contexto es el texto de la pregunta. Por
-eso la validación no deja que un grupo contenga dos siglas (`GET`+`SET`, `TCP`+`UDP`) y el prompt
-aclara que un término en inglés y su equivalente en castellano sí van juntos.
+**Dos claves del diseño:** el modelo infiere a qué objetivo apunta *esa* pregunta y solo reporta
+sobre ese —si no, las cinco preguntas de la clase dirían "faltaron los objetivos 2, 3 y 4"—; y el
+mapa usa disposición determinista en anillo, no simulación de fuerzas, porque lo proyectado no se
+mueve.
 
 ⚠️ **Este frente no salió de la bitácora: lo pidió Juan directamente.** Se anota así a propósito,
-porque la Fase 0 existe justamente para distinguir lo observado de lo supuesto. Resuelve de paso
-`M-01` y `M-04`, que sí llevaban tiempo esperando evidencia.
+porque la Fase 0 existe para distinguir lo observado de lo supuesto. Resuelve de paso `M-01` y
+`M-04`, que sí llevaban tiempo esperando evidencia.
 
-- [ ] **E-00 · BLOQUEANTE: confirmar si Duoc UC tiene política** sobre enviar producción de
-      estudiantes a un servicio de IA. Si la hay, manda sobre la spec entera. Solo Juan puede
-      responderlo.
+#### Bloqueantes
+
+- [ ] **E-00 · Confirmar si Duoc UC tiene política** sobre enviar producción de estudiantes a un
+      servicio de IA. Si la hay, manda sobre la spec entera. Solo Juan puede responderlo.
 - [ ] **E-0½ · Anotar los datos de una clase.** Cuántas respuestas distintas salieron de cuántos
-      alumnos. Es el único número que confirma o desmiente la premisa entera de este frente — ver
-      spec §15. Vale más que cualquier ajuste al diseño.
+      alumnos — ver spec §18. Decide si la agrupación aporta mucho o poco. La lectura contra
+      objetivos sirve igual en los dos escenarios, así que este dato no bloquea la Fase 1 entera.
+
+#### Fase 1 — lo que se puede usar en clase
+
 - [ ] **E-01 · `ANTHROPIC_API_KEY` como variable de entorno en Vercel.** Nunca en el cliente.
-- [ ] **E-02 · Implementar** `api/_lib/ia.js`, `js/plan.js`, la ruta y la UI. Ver spec §5-§9.
-- [ ] **E-03 · Pruebas** puras + una llamada real en el ciclo de `/pruebas`. Ver spec §11.
+- [ ] **E-02 · Objetivos de la clase:** diálogo, campo `objetivos` en el hash de la sala, ruta
+      `POST /api/sala/:codigo/objetivos`. Ver spec §6.
+- [ ] **E-03 · El análisis:** `api/_lib/ia.js`, ruta `analizar`, validación. Ver spec §7-§9.
+- [ ] **E-04 · En pantalla:** `js/plan.js`, botón Analizar, deshacer, panel de lectura. Ver §10.
+- [ ] **E-05 · Pruebas** puras + una llamada real en el ciclo de `/pruebas`. Ver spec §14.
+
+#### Fase 2 — el mapa
+
+- [ ] **E-06 · `js/mapa.js`:** disposición determinista en anillo y pintado en SVG. Ver spec §11.
 
 ### Frente A · Fricción de sala
 - [x] **B-03 · Dominio corto.** Resuelto por Juan: `nubepalabras.vercel.app/r`. Es un alias del
@@ -113,6 +124,10 @@ porque la Fase 0 existe justamente para distinguir lo observado de lo supuesto. 
 - [ ] **M-01 · Fusionar dos términos a mano.** Resuelve singular/plural, que la normalización se
       niega a adivinar. Se valida solo si la bitácora muestra el problema.
 - [ ] **M-04 · Palabras vacías**, para cuando alguien responde con una frase. Igual: solo si pasa.
+- [ ] **M-05 · `index.html` tiene dos elementos con `id="conteos"`** (líneas 76 y 113), sobra el
+      segundo. Es markup muerto que quedó de la corrección del solapamiento: `getElementById`
+      devuelve el primero, así que el de la línea 113 nunca se muestra ni se actualiza. IDs
+      duplicados además son HTML inválido. Borrar las cuatro líneas del segundo bloque.
 
 ---
 
