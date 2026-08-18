@@ -371,6 +371,51 @@ async function correr() {
     'Se puede volver al modo diurno',
   );
 
+  // --- 5c. Lectura semántica ----------------------------------------------
+  //
+  // Esta parte llama de verdad a la API de Claude cuando el ciclo se apunta al
+  // sitio publicado. Es a propósito: la clave ausente o mal nombrada es un
+  // fallo que SOLO aparece desplegado, y ninguna prueba sin red lo detecta.
+  anotar(declaradoVisible('btn-lectura'), 'El botón de lectura aparece con la votación cerrada');
+
+  $('btn-lectura').click();
+  anotar(
+    $('btn-lectura').disabled && $('btn-lectura').textContent.trim() === 'Leyendo…',
+    'Mientras corre, el botón avisa y no se puede pulsar dos veces',
+  );
+
+  // Espera activa: el modelo real tarda segundos, el lector de desarrollo no.
+  for (let i = 0; i < 40 && $('lectura').hidden; i++) await esperar(300);
+
+  const panelLectura = $('lectura');
+  const textoLectura = $('lectura-texto').textContent.trim();
+  const fueError = panelLectura.classList.contains('lectura--error');
+  anotar(!panelLectura.hidden && !fueError, 'Llega una lectura de las respuestas', textoLectura);
+  anotar(textoLectura.length > 0 && textoLectura.length <= 400, 'La lectura entra en 400 caracteres', `${textoLectura.length}`);
+  anotar(!$('btn-lectura').disabled, 'El botón vuelve a quedar disponible');
+
+  if (!fueError) {
+    seVeDeVerdad('El panel de lectura se ve de verdad', 'lectura');
+    // La franja inferior es del QR y de los conteos: el panel no la invade.
+    seVeDeVerdad('El QR sigue visible con la lectura abierta', 'qr-chico');
+    seVeDeVerdad('Los conteos siguen visibles con la lectura abierta', 'conteos');
+  }
+
+  // Ampliar el QR cierra la lectura: el QR nunca comparte pantalla.
+  $('ingreso-esquina').click();
+  await esperar(300);
+  anotar($('lectura').hidden, 'Ampliar el QR cierra la lectura');
+  seVeDeVerdad('El QR ampliado se ve de verdad tras cerrar la lectura', 'qr-grande');
+  $('ingreso-grande').click();
+  await esperar(300);
+
+  // Y Esc la cierra, igual que el QR ampliado.
+  $('btn-lectura').click();
+  for (let i = 0; i < 40 && $('lectura').hidden; i++) await esperar(300);
+  doc().dispatchEvent(new (ven().KeyboardEvent)('keydown', { key: 'Escape', bubbles: true }));
+  await esperar(200);
+  anotar($('lectura').hidden, 'Esc cierra el panel de lectura');
+
   // --- 6. Lanzar la segunda pregunta en la misma sala ---------------------
   $('btn-nueva').click();
   await esperar(300);

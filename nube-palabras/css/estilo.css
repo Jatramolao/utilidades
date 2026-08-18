@@ -926,3 +926,62 @@ body.pidiendo .ingreso--grande .codigo-grande {
   line-height: 1.5;
   margin: 0;
 }
+
+/* --- Panel de lectura ----------------------------------------------------- */
+
+/*
+ * Anclado arriba y acotado en alto, nunca a sangre. La franja inferior es del
+ * QR y de los conteos: un panel `inset: 0` los tapa, que es exactamente el
+ * fallo que apareció publicado. Y su z-index queda por debajo del de
+ * `.ingreso--grande` (2), así que la vista ampliada del QR siempre gana.
+ */
+.lectura {
+  position: absolute;
+  top: 1.5rem;
+  left: 50%;
+  translate: -50% 0;
+  width: min(46rem, 92%);
+  max-height: 55dvh;
+  overflow: auto;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.5rem 1.75rem;
+  background: var(--papel);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+  box-shadow: 0 8px 32px rgb(0 0 0 / 18%);
+  cursor: pointer;
+  text-align: left;
+}
+
+.lectura:focus-visible {
+  outline: 3px solid var(--tinta);
+  outline-offset: 2px;
+}
+
+.lectura h2 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tinta-suave);
+}
+
+/* Grande porque se lee desde la última fila, igual que la nube. */
+#lectura-texto {
+  font-size: clamp(1.05rem, 2.4vh, 1.6rem);
+  line-height: 1.5;
+  color: var(--tinta);
+  text-wrap: pretty;
+}
+
+.lectura__pista {
+  font-size: 0.8rem;
+  color: var(--tinta-suave);
+}
+
+.lectura--error #lectura-texto {
+  color: var(--alerta);
+}

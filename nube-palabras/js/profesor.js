@@ -26,6 +26,7 @@ let oculta = false;
 let conteos = false;
 let qrAmpliado = false;
 let seleccionada = null;
+let pidiendoLectura = false;
 
 const nube = crearNube($('nube'), { alSeleccionar: proponerEliminar });
 
@@ -92,6 +93,7 @@ function pintarIngreso() {
 function mostrarInicio() {
   detenerSondeo();
   nube.limpiar();
+  cerrarLectura();
   $('pantalla-sala').hidden = true;
   $('pantalla-inicio').hidden = false;
   pintarSalasHoy();
@@ -142,6 +144,8 @@ function pintarIngresoVisible() {
 
 function ampliarQr(ampliar) {
   qrAmpliado = ampliar && pregunta !== null;
+  // El QR no se comparte la pantalla con nada: si se amplía, la lectura se va.
+  if (qrAmpliado) cerrarLectura();
   pintarIngresoVisible();
 }
 
@@ -152,6 +156,8 @@ function pintarEstadoPregunta() {
   $('btn-cerrar').hidden = !hayPregunta || pregunta.estado === 'cerrada';
   $('btn-ocultar').hidden = !hayPregunta;
   $('insignia-cerrada').hidden = !hayPregunta || pregunta.estado !== 'cerrada';
+  // La lectura solo tiene sentido sobre respuestas que ya no van a cambiar.
+  $('btn-lectura').hidden = !hayPregunta || pregunta.estado !== 'cerrada';
   if (!hayPregunta) {
     $('participantes').textContent = '';
     $('sin-respuestas').hidden = true;
@@ -218,6 +224,7 @@ async function lanzarPregunta(texto) {
   // el QR vuelve a su esquina.
   alternarConteos(false);
   qrAmpliado = false;
+  cerrarLectura();
   guardarSala();
   pintarEstadoPregunta();
   iniciarSondeo();
@@ -334,6 +341,43 @@ function pintarConteos(palabras) {
   }
 }
 
+// --- Lectura semántica ----------------------------------------------------
+
+/**
+ * El error se muestra dentro del mismo panel y no en el aviso de red: ese lo
+ * borra el siguiente sondeo a los dos segundos, y nadie alcanza a leerlo.
+ */
+function mostrarLectura(texto, { esError = false } = {}) {
+  $('lectura-titulo').textContent = esError ? 'No se pudo leer' : 'Lectura de las respuestas';
+  $('lectura-texto').textContent = texto;
+  $('lectura').classList.toggle('lectura--error', esError);
+  $('lectura').hidden = false;
+}
+
+function cerrarLectura() {
+  $('lectura').hidden = true;
+}
+
+async function pedirLectura() {
+  if (!sala || !pregunta || pidiendoLectura) return;
+  const boton = $('btn-lectura');
+  pidiendoLectura = true;
+  boton.disabled = true;
+  boton.textContent = 'Leyendo…';
+  try {
+    const datos = await pedir(`/sala/${sala.codigo}/pregunta/${pregunta.n}/lectura`, {
+      metodo: 'POST',
+    });
+    mostrarLectura(datos.lectura);
+  } catch (fallo) {
+    mostrarLectura(fallo.message, { esError: true });
+  } finally {
+    pidiendoLectura = false;
+    boton.disabled = false;
+    boton.textContent = 'Lectura';
+  }
+}
+
 function alternarConteos(mostrar) {
   conteos = mostrar;
   $('btn-conteos').textContent = conteos ? 'Ocultar conteos' : 'Ver conteos';
@@ -410,6 +454,16 @@ $('btn-conteos').addEventListener('click', () => {
   sondear();
 });
 
+// Cada pulsada es una llamada nueva: esto es juicio, no cálculo, y una segunda
+// lectura del mismo estado puede decir algo distinto.
+$('btn-lectura').addEventListener('click', pedirLectura);
+$('lectura').addEventListener('click', cerrarLectura);
+$('lectura').addEventListener('keydown', (evento) => {
+  if (evento.key !== 'Enter' && evento.key !== ' ') return;
+  evento.preventDefault();
+  cerrarLectura();
+});
+
 // El QR de la esquina se amplía a pantalla completa para el que llega tarde, y
 // vuelve con otro clic o con Esc. Se usa la misma vista grande de antes de
 // lanzar la pregunta: no hay una segunda pantalla que mantener.
@@ -457,6 +511,7 @@ $('form-pregunta').addEventListener('submit', async (evento) => {
 document.addEventListener('keydown', (evento) => {
   if (evento.key !== 'Escape') return;
   cancelarModeracion();
+  cerrarLectura();
   if (qrAmpliado) ampliarQr(false);
   if (!$('velo-pregunta').hidden && pregunta) cerrarDialogoPregunta();
 });

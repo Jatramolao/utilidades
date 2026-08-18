@@ -107,10 +107,28 @@ Vuelve a desplegar después de añadirla. Si se te olvida, la app lo dice con to
 
 El plan gratuito sobra: una pregunta consume del orden de 250 comandos.
 
-### 3. Verificar
+### 3. Conectar la lectura semántica (opcional)
 
-Abre `https://<tu-dominio>/pruebas` y corre el ciclo: 26 comprobaciones sobre la pantalla real,
-15 segundos.
+El botón **Lectura** manda la pregunta y las respuestas a la API de Claude y devuelve dos o tres
+frases sobre qué está diciendo el curso. Es lo único de la app que cuesta dinero: **unos US$0,004
+por pulsada**, con un tope de 30 por sala.
+
+En *Settings → Environment Variables* agrega `ANTHROPIC_API_KEY` con una clave de
+[console.anthropic.com](https://console.anthropic.com), y vuelve a desplegar. La clave se usa solo
+dentro de la función serverless: nunca llega al navegador.
+
+Sin la variable, todo lo demás sigue funcionando igual. El botón aparece, y al pulsarlo dice
+exactamente qué falta en vez de un error genérico.
+
+En local no hace falta clave: `npm run dev` cae a una lectura enlatada, igual que cae al almacén
+en memoria cuando no hay Redis. El arranque dice cuál de los dos está usando.
+
+### 4. Verificar
+
+Abre `https://<tu-dominio>/pruebas` y corre el ciclo: 64 comprobaciones sobre la pantalla real.
+
+El ciclo **llama de verdad a la API de Claude** una vez (medio centavo). Es a propósito: una clave
+ausente o mal nombrada es un fallo que solo aparece desplegado, y ninguna prueba sin red lo ve.
 
 > **Regla antes de la primera clase:** prueba de humo con 3 teléfonos distintos respondiendo a la
 > vez. La primera vez que esto corra frente a 30 personas no puede ser la primera vez que corre.
@@ -128,6 +146,7 @@ index.html            Pantalla del profesor (proyector)
 r.html                Pantalla del alumno (teléfono)
 css/estilo.css        Capa visual v1: neutra y funcional
 js/normalizar.js      Agrupación de palabras (puro, compartido, testeado)
+api/_lib/ia.js        Lectura semántica con la API de Claude (fetch, sin SDK)
 js/codigo.js          Códigos de sala (puro, compartido, testeado)
 js/qr.js              Codificador QR propio (testeado)
 js/nube.js            Layout de la nube en espiral, estable

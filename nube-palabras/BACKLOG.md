@@ -95,12 +95,17 @@ en la §14 de la spec, sin construir. La Fase 1 no cierra ninguna de esas puerta
 - [ ] **E-00 · Confirmar si Duoc UC tiene política** sobre enviar producción de estudiantes a un
       servicio de IA. Si la hay, manda sobre la spec entera. Solo Juan puede responderlo.
 
-#### Fase 1
+#### Fase 1 — ✅ implementada 2026-08-14, sin desplegar
 
-- [ ] **E-01 · `ANTHROPIC_API_KEY` como variable de entorno en Vercel.** Nunca en el cliente.
-- [ ] **E-02 · `api/_lib/ia.js`** y la ruta `POST /api/sala/:codigo/pregunta/:n/lectura`. Ver §6-§8.
-- [ ] **E-03 · Botón y panel** en `index.html`, `js/profesor.js`, `css/estilo.css`. Ver §9.
-- [ ] **E-04 · Pruebas** puras + una llamada real en el ciclo de `/pruebas`. Ver §12.
+- [ ] **E-01 · `ANTHROPIC_API_KEY` en las variables de entorno de Vercel.** Lo único que falta
+      para que funcione publicado. *Settings → Environment Variables* y volver a desplegar; la
+      receta está en el README. **Solo Juan puede hacerlo.**
+- [x] **E-02 · `api/_lib/ia.js`** y la ruta `POST /api/sala/:codigo/pregunta/:n/lectura`.
+- [x] **E-03 · Botón y panel** en `index.html`, `js/profesor.js`, `css/estilo.css`.
+- [x] **E-04 · Pruebas:** 119 de lógica (`npm test`) + 64 del ciclo, todas en verde en local.
+- [ ] **E-04b · Correr `/pruebas` contra producción** una vez puesta la clave. Es la parte que
+      todavía no se probó de verdad: sin clave local, la llamada a la API de Claude solo se
+      ejercitó contra un lector enlatado.
 
 #### Antes de abrir la Fase 2
 

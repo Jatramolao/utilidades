@@ -1,11 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { manejar, MAX_PALABRAS, TTL } from '../api/_lib/rutas.js';
+import {
+  manejar,
+  MAX_PALABRAS,
+  TTL,
+  MAX_LECTURAS_POR_SALA,
+} from '../api/_lib/rutas.js';
 import { crearStoreMemoria } from '../api/_lib/store-memoria.js';
 import { esCodigoValido } from '../js/codigo.js';
 
 function crearCliente(opciones = {}) {
-  const store = crearStoreMemoria(opciones);
+  const { lector = null, ...opcionesStore } = opciones;
+  const store = crearStoreMemoria(opcionesStore);
   const llamar = (metodo, ruta, { cuerpo, ip, tokenProfesor, consulta } = {}) =>
     manejar(
       {
@@ -17,6 +23,7 @@ function crearCliente(opciones = {}) {
         tokenProfesor,
       },
       store,
+      lector,
     );
   return { store, llamar };
 }
@@ -487,4 +494,195 @@ test('una consulta entre ambas escrituras no muestra la palabra a medias', async
 
   const final = (await llamar('GET', `sala/${codigo}/pregunta/1/nube`, store)).cuerpo;
   assert.equal(final.palabras[0].texto, 'simetría');
+});
+
+// --- Lectura semántica ----------------------------------------------------
+
+/** Lector de mentira: registra qué se le pidió y devuelve algo fijo. */
+function lectorEspia(texto = 'El curso converge en una sola idea.') {
+  const pedidos = [];
+  return {
+    pedidos,
+    async leer(pregunta, palabras) {
+      pedidos.push({ pregunta, palabras });
+      return texto;
+    },
+  };
+}
+
+async function salaConRespuestas(cliente, palabras = ['diafragma', 'apertura']) {
+  const sala = await salaConPregunta(cliente, '¿Qué controla la profundidad de campo?');
+  await enviar(cliente, sala.codigo, 'dispositivo-1', palabras);
+  return sala;
+}
+
+test('la lectura exige el token de profesor', async () => {
+  const cliente = crearCliente({ lector: lectorEspia() });
+  const { codigo, n } = await salaConRespuestas(cliente);
+
+  const sinToken = await cliente.llamar('POST', `sala/${codigo}/pregunta/${n}/lectura`);
+  assert.equal(sinToken.estado, 403);
+
+  const ajeno = await cliente.llamar('POST', `sala/${codigo}/pregunta/${n}/lectura`, {
+    tokenProfesor: 'no-es-el-token',
+  });
+  assert.equal(ajeno.estado, 403);
+});
+
+test('la lectura devuelve el texto y le pasa al lector la pregunta y las palabras', async () => {
+  const lector = lectorEspia('Casi todos describen lo mismo con otras palabras.');
+  const cliente = crearCliente({ lector });
+  const { codigo, tokenProfesor, n } = await salaConRespuestas(cliente);
+
+  const { estado, cuerpo } = await cliente.llamar(
+    'POST',
+    `sala/${codigo}/pregunta/${n}/lectura`,
+    { tokenProfesor },
+  );
+
+  assert.equal(estado, 200);
+  assert.equal(cuerpo.lectura, 'Casi todos describen lo mismo con otras palabras.');
+
+  assert.equal(lector.pedidos.length, 1);
+  assert.equal(lector.pedidos[0].pregunta, '¿Qué controla la profundidad de campo?');
+  assert.deepEqual(
+    lector.pedidos[0].palabras.map((p) => p.texto).sort(),
+    ['apertura', 'diafragma'],
+  );
+});
+
+test('el lector ve las mismas palabras que la nube', async () => {
+  // Si divergieran, el panel hablaría de algo distinto de lo proyectado.
+  const lector = lectorEspia();
+  const cliente = crearCliente({ lector });
+  const { codigo, tokenProfesor, n } = await salaConRespuestas(cliente, ['Diafragma', 'apertura']);
+  await enviar(cliente, codigo, 'dispositivo-2', ['diafragma']);
+
+  const nube = await cliente.llamar('GET', `sala/${codigo}/pregunta/${n}/nube`);
+  await cliente.llamar('POST', `sala/${codigo}/pregunta/${n}/lectura`, { tokenProfesor });
+
+  assert.deepEqual(lector.pedidos[0].palabras, nube.cuerpo.palabras);
+});
+
+test('sin respuestas todavía, la lectura responde 409 y no llama al lector', async () => {
+  const lector = lectorEspia();
+  const cliente = crearCliente({ lector });
+  const { codigo, tokenProfesor, n } = await salaConPregunta(cliente);
+
+  const { estado } = await cliente.llamar('POST', `sala/${codigo}/pregunta/${n}/lectura`, {
+    tokenProfesor,
+  });
+
+  assert.equal(estado, 409);
+  assert.equal(lector.pedidos.length, 0);
+});
+
+test('una pregunta inexistente responde 404', async () => {
+  const cliente = crearCliente({ lector: lectorEspia() });
+  const { codigo, tokenProfesor } = await salaConRespuestas(cliente);
+
+  const { estado } = await cliente.llamar('POST', `sala/${codigo}/pregunta/99/lectura`, {
+    tokenProfesor,
+  });
+
+  assert.equal(estado, 404);
+});
+
+test('la lectura no acepta GET', async () => {
+  const cliente = crearCliente({ lector: lectorEspia() });
+  const { codigo, tokenProfesor, n } = await salaConRespuestas(cliente);
+
+  const { estado } = await cliente.llamar('GET', `sala/${codigo}/pregunta/${n}/lectura`, {
+    tokenProfesor,
+  });
+
+  assert.equal(estado, 405);
+});
+
+test('la sala tiene un tope de lecturas', async () => {
+  const lector = lectorEspia();
+  const cliente = crearCliente({ lector });
+  const { codigo, tokenProfesor, n } = await salaConRespuestas(cliente);
+
+  for (let i = 0; i < MAX_LECTURAS_POR_SALA; i++) {
+    const { estado } = await cliente.llamar('POST', `sala/${codigo}/pregunta/${n}/lectura`, {
+      tokenProfesor,
+    });
+    assert.equal(estado, 200, `la lectura ${i + 1} debería pasar`);
+  }
+
+  const pasada = await cliente.llamar('POST', `sala/${codigo}/pregunta/${n}/lectura`, {
+    tokenProfesor,
+  });
+  assert.equal(pasada.estado, 429);
+  assert.equal(lector.pedidos.length, MAX_LECTURAS_POR_SALA);
+});
+
+test('el tope se comparte entre preguntas de la misma sala', async () => {
+  const cliente = crearCliente({ lector: lectorEspia() });
+  const { codigo, tokenProfesor, n } = await salaConRespuestas(cliente);
+  await cliente.llamar('POST', `sala/${codigo}/pregunta/${n}/lectura`, { tokenProfesor });
+
+  const segunda = await cliente.llamar('POST', `sala/${codigo}/pregunta`, {
+    cuerpo: { texto: '¿Y qué más?' },
+    tokenProfesor,
+  });
+  await enviar(cliente, codigo, 'dispositivo-9', ['otra cosa']);
+
+  const { estado } = await cliente.llamar(
+    'POST',
+    `sala/${codigo}/pregunta/${segunda.cuerpo.n}/lectura`,
+    { tokenProfesor },
+  );
+  assert.equal(estado, 200);
+
+  // Y el gasto se acumula: las dos lecturas cuentan contra el mismo tope.
+  for (let i = 0; i < MAX_LECTURAS_POR_SALA - 2; i++) {
+    await cliente.llamar('POST', `sala/${codigo}/pregunta/${n}/lectura`, { tokenProfesor });
+  }
+  const pasada = await cliente.llamar('POST', `sala/${codigo}/pregunta/${n}/lectura`, {
+    tokenProfesor,
+  });
+  assert.equal(pasada.estado, 429);
+});
+
+test('si el lector falla, se responde 502 sin filtrar el detalle', async () => {
+  const lector = {
+    async leer() {
+      throw new Error('La API de Claude respondió 429');
+    },
+  };
+  const cliente = crearCliente({ lector });
+  const { codigo, tokenProfesor, n } = await salaConRespuestas(cliente);
+
+  const { estado, cuerpo } = await cliente.llamar(
+    'POST',
+    `sala/${codigo}/pregunta/${n}/lectura`,
+    { tokenProfesor },
+  );
+
+  assert.equal(estado, 502);
+  assert.match(cuerpo.error, /Vuelve a pulsar/);
+  assert.doesNotMatch(cuerpo.error, /429/);
+});
+
+test('si falta la clave de la API, el mensaje lo dice', async () => {
+  const lector = {
+    async leer() {
+      throw new Error(
+        'Falta la clave de la API de Claude. Agrega ANTHROPIC_API_KEY en las variables de entorno y vuelve a desplegar.',
+      );
+    },
+  };
+  const cliente = crearCliente({ lector });
+  const { codigo, tokenProfesor, n } = await salaConRespuestas(cliente);
+
+  const { estado, cuerpo } = await cliente.llamar(
+    'POST',
+    `sala/${codigo}/pregunta/${n}/lectura`,
+    { tokenProfesor },
+  );
+
+  assert.equal(estado, 500);
+  assert.match(cuerpo.error, /ANTHROPIC_API_KEY/);
 });

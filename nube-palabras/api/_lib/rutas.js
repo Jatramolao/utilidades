@@ -14,12 +14,16 @@ import {
   esCodigoValido,
   normalizarCodigo,
 } from '../../js/codigo.js';
+import { crearLector, FALTA_CLAVE } from './ia.js';
 
 export const TTL = 6 * 60 * 60; // 6 horas, renovadas en cada escritura
 export const MAX_PALABRAS = 3;
 export const MAX_LARGO_PREGUNTA = 200;
 export const MAX_ENVIOS_POR_IP = 20; // por minuto
 export const VENTANA_IP = 60;
+// Cada lectura cuesta dinero. El token de profesor ya limita quién puede
+// pedirla; este tope acota el daño de un dedo pegado al botón.
+export const MAX_LECTURAS_POR_SALA = 30;
 
 const k = {
   sala: (c) => `sala:${c}`,
@@ -27,6 +31,7 @@ const k = {
   palabras: (c, n) => `sala:${c}:p:${n}:palabras`,
   formas: (c, n) => `sala:${c}:p:${n}:formas`,
   cuota: (c, n) => `sala:${c}:p:${n}:cuota`,
+  lecturas: (c) => `sala:${c}:lecturas`,
   ip: (ip) => `ip:${ip}`,
 };
 
@@ -270,18 +275,18 @@ function mejoresFormas(formas) {
   return mejor;
 }
 
-async function verNube(store, codigo, n) {
-  const pregunta = await store.hgetall(k.pregunta(codigo, n));
-  if (!pregunta) return error(404, 'Esa pregunta ya no existe');
-
-  const [conteos, formas, participantes] = await Promise.all([
+/**
+ * Las palabras de una pregunta, ya con su mejor grafía y ordenadas. Lo usan la
+ * nube y la lectura: las dos tienen que ver exactamente lo mismo.
+ */
+async function listarPalabras(store, codigo, n) {
+  const [conteos, formas] = await Promise.all([
     store.hgetall(k.palabras(codigo, n)),
     store.hgetall(k.formas(codigo, n)),
-    store.hlen(k.cuota(codigo, n)),
   ]);
 
   const mejor = mejoresFormas(formas);
-  const palabras = Object.entries(conteos ?? {})
+  return Object.entries(conteos ?? {})
     .map(([clave, conteo]) => ({
       clave,
       texto: mejor.get(clave)?.original ?? clave,
@@ -289,6 +294,16 @@ async function verNube(store, codigo, n) {
     }))
     .filter((p) => p.conteo > 0)
     .sort((a, b) => b.conteo - a.conteo || a.clave.localeCompare(b.clave));
+}
+
+async function verNube(store, codigo, n) {
+  const pregunta = await store.hgetall(k.pregunta(codigo, n));
+  if (!pregunta) return error(404, 'Esa pregunta ya no existe');
+
+  const [palabras, participantes] = await Promise.all([
+    listarPalabras(store, codigo, n),
+    store.hlen(k.cuota(codigo, n)),
+  ]);
 
   return ok({
     n: Number(n),
@@ -317,6 +332,39 @@ async function eliminarPalabra(store, codigo, n, clave, tokenProfesor) {
   return ok({ eliminada: clave });
 }
 
+/**
+ * Lectura semántica de las respuestas.
+ *
+ * El cliente no manda datos: la pregunta y las respuestas se leen de aquí, así
+ * nadie puede inyectar texto ajeno en el prompt ni inflar el gasto.
+ */
+async function leerPregunta(store, codigo, n, tokenProfesor, lector) {
+  const { fallo } = await exigirProfesor(store, codigo, tokenProfesor);
+  if (fallo) return fallo;
+
+  const pregunta = await store.hgetall(k.pregunta(codigo, n));
+  if (!pregunta) return error(404, 'Esa pregunta ya no existe');
+
+  // Se mira antes de contar el uso: una pregunta sin respuestas no gasta cuota.
+  const palabras = await listarPalabras(store, codigo, n);
+  if (palabras.length === 0) return error(409, 'Todavía no hay respuestas que leer');
+
+  const usos = await store.incrConTtl(k.lecturas(codigo), TTL);
+  if (usos > MAX_LECTURAS_POR_SALA) {
+    return error(429, `Esta sala ya usó sus ${MAX_LECTURAS_POR_SALA} lecturas`);
+  }
+
+  try {
+    const texto = await (lector ?? crearLector()).leer(pregunta.texto, palabras);
+    return ok({ lectura: texto });
+  } catch (problema) {
+    // La credencial ausente se distingue del resto: es lo primero que falta en
+    // un despliegue nuevo, y un 502 genérico obligaría a ir a los registros.
+    if (problema.message?.startsWith(FALTA_CLAVE)) return error(500, problema.message);
+    return error(502, 'No se pudo leer las respuestas. Vuelve a pulsar');
+  }
+}
+
 // --- Enrutamiento ---------------------------------------------------------
 
 /**
@@ -327,8 +375,9 @@ async function eliminarPalabra(store, codigo, n, clave, tokenProfesor) {
  * @param {object} [peticion.consulta]   parámetros de query
  * @param {string} [peticion.ip]
  * @param {string} [peticion.tokenProfesor]  cabecera x-token-profesor
+ * @param {object} [lector]  lector de IA; por defecto se construye del entorno
  */
-export async function manejar(peticion, store) {
+export async function manejar(peticion, store, lector = null) {
   const { metodo, segmentos, cuerpo, consulta = {}, ip, tokenProfesor } = peticion;
 
   if (segmentos[0] !== 'sala') return error(404, 'Ruta desconocida');
@@ -375,6 +424,12 @@ export async function manejar(peticion, store) {
   if (segmentos.length === 5 && segmentos[4] === 'nube') {
     if (metodo !== 'GET') return error(405, 'Método no permitido');
     return verNube(store, codigo, n);
+  }
+
+  // POST /api/sala/:codigo/pregunta/:n/lectura
+  if (segmentos.length === 5 && segmentos[4] === 'lectura') {
+    if (metodo !== 'POST') return error(405, 'Método no permitido');
+    return leerPregunta(store, codigo, n, tokenProfesor, lector);
   }
 
   // DELETE /api/sala/:codigo/pregunta/:n/palabra/:clave

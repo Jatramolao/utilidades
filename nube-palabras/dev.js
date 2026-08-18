@@ -13,6 +13,7 @@ import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { manejar } from './api/_lib/rutas.js';
+import { crearLector, crearLectorFalso } from './api/_lib/ia.js';
 import { crearStoreMemoria } from './api/_lib/store-memoria.js';
 import { crearStoreRedis } from './api/_lib/store-redis.js';
 
@@ -27,6 +28,18 @@ const { store, almacen } = (() => {
     return { store: crearStoreRedis(), almacen: 'Upstash Redis' };
   } catch {
     return { store: crearStoreMemoria(), almacen: 'memoria (solo desarrollo)' };
+  }
+})();
+
+// Mismo criterio que con el almacén: si no hay clave de la API se usa un
+// lector enlatado, para poder recorrer la pantalla entera sin gastar ni
+// configurar nada. `api/index.js` nunca construye este lector, así que no
+// existe forma de que aparezca en producción.
+const { lector, lecturas } = (() => {
+  try {
+    return { lector: crearLector(), lecturas: 'API de Claude' };
+  } catch {
+    return { lector: crearLectorFalso(), lecturas: 'enlatadas (solo desarrollo)' };
   }
 })();
 
@@ -74,6 +87,7 @@ const servidor = createServer(async (req, res) => {
           tokenProfesor: req.headers['x-token-profesor'] ?? null,
         },
         store,
+        lector,
       );
       responderJson(res, estado, salida);
     } catch (fallo) {
@@ -109,4 +123,5 @@ const servidor = createServer(async (req, res) => {
 servidor.listen(PUERTO, () => {
   console.log(`nube-palabras en http://localhost:${PUERTO}`);
   console.log(`almacén: ${almacen}`);
+  console.log(`lecturas: ${lecturas}`);
 });

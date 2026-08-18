@@ -45,6 +45,7 @@
           <button id="btn-conteos" class="boton boton--fantasma" aria-pressed="false">
             Ver conteos
           </button>
+          <button id="btn-lectura" class="boton boton--fantasma" hidden>Lectura</button>
           <button id="btn-ocultar" class="boton boton--fantasma">Ocultar nube</button>
           <button id="btn-cerrar" class="boton">Cerrar votación</button>
           <button id="btn-nueva" class="boton boton--principal">Nueva pregunta</button>
@@ -109,10 +110,25 @@
           <span>Escanea el QR para responder</span>
         </div>
 
-        <!-- Las más repetidas con su número: el tamaño dice cuál, esto dice cuántas -->
-        <aside id="conteos" class="conteos" hidden>
-          <h2>Más repetidas</h2>
-          <ol id="conteos-lista"></ol>
+        <!--
+          Lectura semántica de las respuestas.
+
+          Va anclada arriba y acotada en alto a propósito, no a sangre: la
+          franja inferior es del QR y de los conteos, y un panel que la invade
+          ya tapó el QR una vez. Por lo mismo su z-index queda por debajo del
+          de la vista ampliada del QR.
+        -->
+        <aside
+          id="lectura"
+          class="lectura"
+          role="button"
+          tabindex="0"
+          aria-label="Cerrar la lectura"
+          hidden
+        >
+          <h2 id="lectura-titulo">Lectura de las respuestas</h2>
+          <p id="lectura-texto"></p>
+          <p class="lectura__pista">Pulsa o presiona Esc para cerrar</p>
         </aside>
       </div>
 
