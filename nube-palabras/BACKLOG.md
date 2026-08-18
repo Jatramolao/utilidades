@@ -3,11 +3,11 @@
 Fuente de verdad de lo pendiente. El diseño vive en
 [`docs/superpowers/specs/2026-08-07-nube-palabras-design.md`](docs/superpowers/specs/2026-08-07-nube-palabras-design.md).
 
-**Estado 2026-08-12: ✅ EN PRODUCCIÓN — https://nubepalabras.vercel.app**
+**Estado 2026-08-14: ✅ EN PRODUCCIÓN — https://nubepalabras.vercel.app**
 
-v1.1 (pantalla proyectada) desplegada. **90 pruebas de lógica** (`npm test`) + **45 del ciclo**
-de `/pruebas`, todas en verde **corriendo contra producción**. Falta solo la prueba con muchos
-teléfonos reales en sala.
+v1.1 (pantalla proyectada) + lectura semántica desplegadas. **119 pruebas de lógica**
+(`npm test`) + **65 del ciclo** de `/pruebas`, todas en verde **corriendo contra producción y
+llamando de verdad a la API de Claude**. Falta solo la prueba con muchos teléfonos reales en sala.
 
 ⚠️ **Al commitear, el email de autor debe ser `jatramolao@gmail.com`.** Vercel rechaza el
 despliegue con *"The commit author email is not a valid email address"* si se usa otro, y el
@@ -95,17 +95,24 @@ en la §14 de la spec, sin construir. La Fase 1 no cierra ninguna de esas puerta
 - [ ] **E-00 · Confirmar si Duoc UC tiene política** sobre enviar producción de estudiantes a un
       servicio de IA. Si la hay, manda sobre la spec entera. Solo Juan puede responderlo.
 
-#### Fase 1 — ✅ implementada 2026-08-14, sin desplegar
+#### Fase 1 — ✅ EN PRODUCCIÓN desde 2026-08-14
 
-- [ ] **E-01 · `ANTHROPIC_API_KEY` en las variables de entorno de Vercel.** Lo único que falta
-      para que funcione publicado. *Settings → Environment Variables* y volver a desplegar; la
-      receta está en el README. **Solo Juan puede hacerlo.**
+- [x] **E-01 · `ANTHROPIC_API_KEY`** puesta por Juan en Vercel.
 - [x] **E-02 · `api/_lib/ia.js`** y la ruta `POST /api/sala/:codigo/pregunta/:n/lectura`.
 - [x] **E-03 · Botón y panel** en `index.html`, `js/profesor.js`, `css/estilo.css`.
-- [x] **E-04 · Pruebas:** 119 de lógica (`npm test`) + 64 del ciclo, todas en verde en local.
-- [ ] **E-04b · Correr `/pruebas` contra producción** una vez puesta la clave. Es la parte que
-      todavía no se probó de verdad: sin clave local, la llamada a la API de Claude solo se
-      ejercitó contra un lector enlatado.
+- [x] **E-04 · Pruebas:** 119 de lógica + 65 del ciclo, en verde.
+- [x] **E-04b · `/pruebas` contra producción**, con llamada real a la API: 65/65.
+
+**Dos cosas se midieron y no coincidían con la spec:**
+
+- El tope de 400 caracteres **truncaba las tres lecturas de tres**, comiéndose siempre la última
+  frase (la observación sobre la minoría, que es lo que el prompt más pide). Subido a 600, y el
+  ciclo ahora comprueba además que la lectura no termine en elipsis.
+- **La latencia real es ~5,4 s**, en frío y en caliente, no los 2-4 estimados. Sin tocar: el único
+  lever es apagar `thinking`, que se paga en calidad. Decidir después de usarla en clase.
+
+- [ ] **E-06 · Anotar en la bitácora la primera clase con lectura.** Si cinco segundos molestan
+      en sala, y si la lectura aporta algo que la nube no daba.
 
 #### Antes de abrir la Fase 2
 

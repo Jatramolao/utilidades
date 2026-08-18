@@ -125,7 +125,7 @@ en memoria cuando no hay Redis. El arranque dice cuál de los dos está usando.
 
 ### 4. Verificar
 
-Abre `https://<tu-dominio>/pruebas` y corre el ciclo: 64 comprobaciones sobre la pantalla real.
+Abre `https://<tu-dominio>/pruebas` y corre el ciclo: 65 comprobaciones sobre la pantalla real.
 
 El ciclo **llama de verdad a la API de Claude** una vez (medio centavo). Es a propósito: una clave
 ausente o mal nombrada es un fallo que solo aparece desplegado, y ninguna prueba sin red lo ve.
