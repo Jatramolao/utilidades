@@ -13,7 +13,13 @@
  */
 
 export const MODELO = 'claude-sonnet-5';
-export const MAX_LECTURA = 400;
+/*
+ * 600 y no 400: medido contra la API real, tres lecturas de tres salieron
+ * truncadas con 400, y el corte se comía siempre la última frase — que es
+ * justo la observación que el prompt pide (la minoría que aporta algo). Tres
+ * frases sustantivas en castellano pasan los 400 caracteres con facilidad.
+ */
+export const MAX_LECTURA = 600;
 export const URL_API = 'https://api.anthropic.com/v1/messages';
 export const VERSION_API = '2023-06-01';
 

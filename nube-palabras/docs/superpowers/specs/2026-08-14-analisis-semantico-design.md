@@ -174,6 +174,12 @@ queda en caché 24 horas.
 `effort: "low"` porque la tarea es acotada y en sala los segundos se notan. Si la lectura sale
 pobre, subir a `medium` es cambiar una palabra.
 
+**Latencia medida en producción: ~5,4 segundos**, igual en frío que en caliente. Es más de los 2-4
+que estimé al diseñar. El lever que queda sin usar es `thinking: {type: "disabled"}`, que Sonnet 5
+acepta con `effort` bajo y recortaría bastante — a costa de calidad en un juicio que es todo el
+valor de la función. Queda sin tocar hasta que Juan la use en clase y diga si cinco segundos
+molestan.
+
 ---
 
 ## 7. Contrato de la ruta
@@ -201,8 +207,13 @@ inválido.
 
 ## 8. Validación
 
-Una sola regla: **`lectura` se recorta a 400 caracteres.** Es lo que entra legible en un proyector,
-y acota el daño si el modelo se extiende pese a la instrucción.
+Una sola regla: **`lectura` se recorta a 600 caracteres**, cortando en un límite de palabra. Acota
+el daño si el modelo se extiende pese a la instrucción.
+
+> **Medido contra la API real el 2026-08-14:** con un tope de 400 se truncaron **tres lecturas de
+> tres**, y el corte se comía siempre la última frase — que es justo la observación que el prompt
+> pide (la minoría que aporta algo). Tres frases sustantivas en castellano pasan los 400 con
+> facilidad. 600 las deja entrar enteras y sigue siendo legible proyectado.
 
 No hace falta más. La lectura es prosa que vive en su propio panel: **no reescribe respuestas de
 alumnos, no se mezcla con la nube y no altera ningún conteo.** Toda la maquinaria de validación de
@@ -219,7 +230,7 @@ que el docente decide si el curso la ve.
 
 Con la votación cerrada aparece un botón **Lectura** junto al de conteos, en la barra superior.
 
-Al pulsarlo pasa a *"Leyendo…"* y queda inhabilitado. Dos a tres segundos después se abre un panel
+Al pulsarlo pasa a *"Leyendo…"* y queda inhabilitado. Unos cinco segundos después se abre un panel
 sobre el lienzo con el texto, y el botón vuelve a su estado normal. **El panel se cierra con un
 clic fuera o con Esc**, igual que el QR ampliado — el mismo patrón que ya existe, no uno nuevo.
 

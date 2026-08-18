@@ -391,7 +391,8 @@ async function correr() {
   const textoLectura = $('lectura-texto').textContent.trim();
   const fueError = panelLectura.classList.contains('lectura--error');
   anotar(!panelLectura.hidden && !fueError, 'Llega una lectura de las respuestas', textoLectura);
-  anotar(textoLectura.length > 0 && textoLectura.length <= 400, 'La lectura entra en 400 caracteres', `${textoLectura.length}`);
+  anotar(textoLectura.length > 0 && textoLectura.length <= 600, 'La lectura entra en 600 caracteres', `${textoLectura.length}`);
+  anotar(!textoLectura.endsWith('…'), 'La lectura llega entera, sin cortarse', textoLectura.slice(-40));
   anotar(!$('btn-lectura').disabled, 'El botón vuelve a quedar disponible');
 
   if (!fueError) {
