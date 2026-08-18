@@ -151,6 +151,24 @@ function comprobarSinSolapes(titulo) {
 
 const codigoDeLaSala = () => JSON.parse(ven().localStorage.getItem('nube:sala')).codigo;
 
+/**
+ * Espera a que una condición se cumpla, hasta un tope.
+ *
+ * Existe porque una comprobación con espera fija falla en producción y pasa en
+ * local por pura latencia: "Esperando respuestas" aparece tras dos viajes de
+ * red —lanzar la pregunta y el primer sondeo— y se midió en 1429 ms contra el
+ * sitio publicado, con la prueba mirando a los 1200. El comportamiento era
+ * correcto; la prueba, optimista.
+ */
+async function esperarA(condicion, tope = 5000) {
+  const hasta = Date.now() + tope;
+  while (Date.now() < hasta) {
+    if (condicion()) return true;
+    await esperar(100);
+  }
+  return condicion();
+}
+
 async function responder(codigo, token, palabras) {
   await fetch(`/api/sala/${codigo}/palabras`, {
     method: 'POST',
@@ -209,7 +227,10 @@ async function correr() {
     'El QR pasa a la esquina y SE VE (nadie puede entrar si está tapado)',
     'qr-chico',
   );
-  anotar(declaradoVisible('sin-respuestas'), 'Se avisa que no hay respuestas todavía');
+  anotar(
+    await esperarA(() => declaradoVisible('sin-respuestas')),
+    'Se avisa que no hay respuestas todavía',
+  );
 
   // --- 3. Responder -------------------------------------------------------
   await responder(codigo, 'ciclo-alumno-1', ['luz', 'fondo']);
@@ -384,8 +405,8 @@ async function correr() {
     'Mientras corre, el botón avisa y no se puede pulsar dos veces',
   );
 
-  // Espera activa: el modelo real tarda segundos, el lector de desarrollo no.
-  for (let i = 0; i < 40 && $('lectura').hidden; i++) await esperar(300);
+  // El modelo real tarda unos cinco segundos; el lector de desarrollo, nada.
+  await esperarA(() => !$('lectura').hidden, 20000);
 
   const panelLectura = $('lectura');
   const textoLectura = $('lectura-texto').textContent.trim();
@@ -412,7 +433,7 @@ async function correr() {
 
   // Y Esc la cierra, igual que el QR ampliado.
   $('btn-lectura').click();
-  for (let i = 0; i < 40 && $('lectura').hidden; i++) await esperar(300);
+  await esperarA(() => !$('lectura').hidden, 20000);
   doc().dispatchEvent(new (ven().KeyboardEvent)('keydown', { key: 'Escape', bubbles: true }));
   await esperar(200);
   anotar($('lectura').hidden, 'Esc cierra el panel de lectura');
