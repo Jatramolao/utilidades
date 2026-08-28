@@ -132,10 +132,14 @@ en la §14 de la spec, sin construir. La Fase 1 no cierra ninguna de esas puerta
 - [ ] **M-01 · Fusionar dos términos a mano.** Resuelve singular/plural, que la normalización se
       niega a adivinar. Se valida solo si la bitácora muestra el problema.
 - [ ] **M-04 · Palabras vacías**, para cuando alguien responde con una frase. Igual: solo si pasa.
-- [ ] **M-05 · `index.html` tiene dos elementos con `id="conteos"`** (líneas 76 y 113), sobra el
-      segundo. Es markup muerto que quedó de la corrección del solapamiento: `getElementById`
-      devuelve el primero, así que el de la línea 113 nunca se muestra ni se actualiza. IDs
-      duplicados además son HTML inválido. Borrar las cuatro líneas del segundo bloque.
+- [x] **M-05 · `id="conteos"` duplicado en `index.html`.** Resuelto 2026-08-14: el segundo
+      bloque era markup muerto de la corrección del solapamiento y se fue al agregar el panel de
+      lectura, que ocupa ese mismo lugar del DOM.
+- [ ] **M-06 · Qué pasa con las palabras que no caben.** `nube.js` encoge todo un 15% y reintenta
+      hasta 8 veces; si tras eso algo sigue sin caber, no hay comportamiento definido para las
+      palabras posteriores al fallo. Con respuestas largas y un curso grande puede significar
+      respuestas que existen y nunca aparecen proyectadas. **Medir primero**: contar términos en
+      el panel de conteos contra palabras dibujadas, en una clase real.
 
 ---
 
