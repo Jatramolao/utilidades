@@ -135,11 +135,23 @@ en la §14 de la spec, sin construir. La Fase 1 no cierra ninguna de esas puerta
 - [x] **M-05 · `id="conteos"` duplicado en `index.html`.** Resuelto 2026-08-14: el segundo
       bloque era markup muerto de la corrección del solapamiento y se fue al agregar el panel de
       lectura, que ocupa ese mismo lugar del DOM.
-- [ ] **M-06 · Qué pasa con las palabras que no caben.** `nube.js` encoge todo un 15% y reintenta
+- [x] **M-07 · La curva tipográfica jerarquiza.** (2026-09-12) `crecimiento` pasa de 0,55 a
+      1,05. Con 0,55 el techo quedaba a **31 repeticiones** —un curso de 30 no llegaba nunca— y
+      la dominante medía solo 2,56× una respuesta única; el peso visual lo decidía el largo de la
+      cadena y no cuántos alumnos lo dijeron. Ahora el techo está a 9 y la dominante mide 3,97×.
+      Comparado lado a lado en `escala.html` antes de decidir. La curva salió del closure a
+      función pura (`tamanoFuente`, `conteoDeTecho`) y se prueba con dos reglas de sala en
+      `test/nube.test.js`.
+
+- [~] **M-06 · Qué pasa con las palabras que no caben.** `nube.js` encoge todo un 15% y reintenta
       hasta 8 veces; si tras eso algo sigue sin caber, no hay comportamiento definido para las
-      palabras posteriores al fallo. Con respuestas largas y un curso grande puede significar
-      respuestas que existen y nunca aparecen proyectadas. **Medir primero**: contar términos en
-      el panel de conteos contra palabras dibujadas, en una clase real.
+      palabras posteriores al fallo.
+      **Medido el 2026-09-12** con las dos curvas, contando solapes reales y elementos que quedan
+      sin colocar: en geometría de proyector (1840×900) **no se dispara ni con 90 términos
+      distintos**, muy por encima de lo que da una clase. Lo que sí falla es el área chica: en un
+      contenedor de ~290 px de ancho, 34 términos producen 15 pares solapados.
+      Queda abierto porque eso es exactamente el escenario de **A-02** (que el alumno vea la nube
+      en su teléfono): esa función no se puede construir sin resolver esto antes.
 
 ---
 

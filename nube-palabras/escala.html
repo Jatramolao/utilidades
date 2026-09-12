@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Comparación de curva tipográfica</title>
+    <link rel="stylesheet" href="/css/estilo.css" />
+    <style>
+      /*
+       * Banco de pruebas, no parte de la app. Existe para mirar dos curvas de
+       * tamaño con los mismos datos y decidir con la pantalla delante, no de
+       * memoria. Igual que `pruebas.html`, no se enlaza desde ningún sitio.
+       */
+      .banco { padding: 1rem; }
+      .par { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+      .lado { border: 1px solid var(--linea); border-radius: var(--radio); }
+      .lado__cabecera {
+        display: flex; justify-content: space-between; align-items: baseline;
+        gap: 1rem; padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--linea);
+      }
+      .lado__titulo { margin: 0; font-size: 1rem; }
+      .lado__dato { color: var(--tinta-suave); font-size: 0.8rem; }
+      .lienzo { position: relative; height: 62vh; overflow: hidden; }
+      .ficha { margin: 0 0 1rem; color: var(--tinta-suave); max-width: 70ch; }
+      @media (max-width: 900px) { .par { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <main class="banco">
+      <p class="ficha" id="ficha">Cargando…</p>
+      <div class="par">
+        <section class="lado">
+          <header class="lado__cabecera">
+            <h2 class="lado__titulo">Anterior (crecimiento 0,55)</h2>
+            <span class="lado__dato" id="dato-a"></span>
+          </header>
+          <div class="lienzo"><div class="nube" id="nube-a"></div></div>
+        </section>
+        <section class="lado">
+          <header class="lado__cabecera">
+            <h2 class="lado__titulo">Actual (crecimiento 1,05)</h2>
+            <span class="lado__dato" id="dato-b"></span>
+          </header>
+          <div class="lienzo"><div class="nube" id="nube-b"></div></div>
+        </section>
+      </div>
+    </main>
+
+    <script type="module">
+      import { crearNube, CURVA, conteoDeTecho, tamanoFuente } from '/js/nube.js';
+
+      /*
+       * Una clase real de informática: 23 alumnos, 3 respuestas cada uno.
+       * La forma importa más que los términos: una dominante, un par de
+       * seguidoras y una cola larga de respuestas únicas. Es la distribución
+       * que sale siempre, y es la que la curva tiene que saber jerarquizar.
+       */
+      const CRUDO = [
+        ['cola', 9], ['FIFO', 7], ['queue', 5], ['buffer', 4], ['lista enlazada', 4],
+        ['array', 3], ['arreglo', 3], ['cola circular', 2], ['pila', 2], ['stack', 2],
+        ['deque', 2], ['heap', 2], ['linked list', 2], ['cola de prioridad', 2],
+        ['ring buffer', 1], ['vector', 1], ['lista', 1], ['nodo', 1], ['puntero', 1],
+        ['semáforo', 1], ['mutex', 1], ['hilo', 1], ['spooler', 1], ['memoria', 1],
+        ['índice', 1], ['tabla hash', 1], ['grafo', 1], ['árbol', 1], ['iterador', 1],
+        ['LIFO', 1], ['cursor', 1], ['batch', 1], ['prioridad', 1], ['bandeja', 1],
+      ];
+      const PALABRAS = CRUDO.map(([texto, conteo]) => ({ texto, conteo, clave: texto.toLowerCase() }));
+      const respuestas = PALABRAS.reduce((t, p) => t + p.conteo, 0);
+
+      /*
+       * La izquierda es la curva que la nube tenía hasta el 2026-09-12; la
+       * derecha es la vigente. Se conserva la comparación para que el cambio
+       * se pueda volver a mirar en vez de recordarlo.
+       */
+      const ANTERIOR = { ...CURVA, crecimiento: 0.55 };
+
+      document.getElementById('ficha').textContent =
+        `«¿Qué estructura de datos usarías para una cola de impresión?» — ` +
+        `${respuestas} respuestas, ${PALABRAS.length} términos distintos. ` +
+        `Los mismos datos en las dos nubes; lo único que cambia es la curva de tamaño.`;
+
+      function montar(idNube, idDato, curva) {
+        const contenedor = document.getElementById(idNube);
+        const nube = crearNube(contenedor, { curva });
+        nube.actualizar(PALABRAS);
+
+        const unidad = Math.min(contenedor.clientWidth, contenedor.clientHeight);
+        const mayor = tamanoFuente(9, unidad, curva);
+        const menor = tamanoFuente(1, unidad, curva);
+        document.getElementById(idDato).textContent =
+          `${nube.cantidad}/${PALABRAS.length} palabras · ` +
+          `la dominante mide ${(mayor / menor).toFixed(2)}× la más chica · ` +
+          `techo a las ${Math.round(conteoDeTecho(curva))} repeticiones`;
+      }
+
+      montar('nube-a', 'dato-a', ANTERIOR);
+      montar('nube-b', 'dato-b', CURVA);
+    </script>
+  </body>
+</html>

@@ -24,13 +24,62 @@ const APLASTADO = 0.62; // la espiral se achata para aprovechar pantallas anchas
 export const AMPLITUD_RESPIRACION = 3;
 
 /**
+ * Curva de tamaño: cuánto crece una palabra según cuántas veces se repitió.
+ *
+ * Está fuera de `crearNube` —y es un parámetro, no una constante enterrada—
+ * por la misma razón que el color vive en `tono.js`: para poder **medirla**.
+ * Una curva se ve razonable en el portátil y en la sala no jerarquiza nada, y
+ * es un fallo que no avisa.
+ *
+ * `crecimiento` es lo que decide a cuántas repeticiones una palabra alcanza el
+ * tamaño máximo. Ver `conteoDeTecho`.
+ */
+export const CURVA = {
+  minimoAbsoluto: 22,
+  minimoRelativo: 0.055,
+  maximoRelativo: 0.22,
+  /*
+   * 1,05 y no 0,55. Con 0,55 el techo quedaba a 31 repeticiones: un curso de
+   * 30 alumnos no lo alcanzaba nunca y la dominante apenas medía 2,56 veces
+   * una respuesta única. El efecto proyectado era que el peso visual lo
+   * decidía el largo de la cadena y no cuántos alumnos lo dijeron — una frase
+   * de dos votos le ganaba la pantalla a la palabra que dijo medio curso.
+   * Comparado lado a lado en `escala.html` antes de cambiarlo.
+   */
+  crecimiento: 1.05,
+};
+
+/** Tamaño en píxeles, sin el factor de encogido. Puro: medible sin DOM. */
+export function tamanoFuente(conteo, unidad, curva = CURVA) {
+  const minimo = Math.max(curva.minimoAbsoluto, unidad * curva.minimoRelativo);
+  const maximo = unidad * curva.maximoRelativo;
+  const crecido = minimo * (1 + curva.crecimiento * Math.sqrt(Math.max(0, conteo - 1)));
+  return Math.min(maximo, crecido);
+}
+
+/**
+ * Repeticiones que necesita una palabra para llegar al tamaño máximo.
+ *
+ * Es la cifra que decide si la nube jerarquiza en una clase real: si el techo
+ * está a 31 repeticiones y el curso tiene 30 alumnos, no se alcanza nunca y
+ * todas las palabras terminan en un rango estrecho.
+ *
+ * Supone una pantalla lo bastante grande como para que mande el mínimo
+ * relativo y no el absoluto, que es el caso de un proyector.
+ */
+export function conteoDeTecho(curva = CURVA) {
+  const razon = curva.maximoRelativo / curva.minimoRelativo;
+  return 1 + ((razon - 1) / curva.crecimiento) ** 2;
+}
+
+/**
  * Aire entre palabras. Sube al doble de la amplitud por encima del margen base:
  * si dos vecinas respiran la una hacia la otra, tienen que seguir sin tocarse.
  * Sin esto, el movimiento reintroduce el solapamiento por la puerta de atrás.
  */
 const SEPARACION = 6 + 2 * AMPLITUD_RESPIRACION;
 
-export function crearNube(contenedor, { alSeleccionar } = {}) {
+export function crearNube(contenedor, { alSeleccionar, curva = CURVA } = {}) {
   /** @type {Map<string, {el: HTMLElement, x: number, y: number, conteo: number, ancho: number, alto: number}>} */
   const puestas = new Map();
   let escala = 1;
@@ -43,12 +92,9 @@ export function crearNube(contenedor, { alSeleccionar } = {}) {
     };
   }
 
-  function tamanoFuente(conteo, unidad) {
-    const minimo = Math.max(22, unidad * 0.055);
-    const maximo = unidad * 0.22;
-    const crecido = minimo * (1 + 0.55 * Math.sqrt(Math.max(0, conteo - 1)));
-    return Math.min(maximo, crecido) * escala;
-  }
+  // `escala` es el encogido de emergencia cuando algo no cabe; la curva en sí
+  // no depende del estado de la nube.
+  const tamanoConEscala = (conteo, unidad) => tamanoFuente(conteo, unidad, curva) * escala;
 
   // El tema se lee del documento en cada pintado: así el cambio a modo nocturno
   // no necesita avisar a la nube, solo repintar.
@@ -133,7 +179,7 @@ export function crearNube(contenedor, { alSeleccionar } = {}) {
     for (const palabra of ordenadas) {
       const puesta = puestas.get(palabra.clave);
       if (!puesta) continue;
-      const tamano = tamanoFuente(palabra.conteo, geometria.unidad);
+      const tamano = tamanoConEscala(palabra.conteo, geometria.unidad);
       puesta.el.style.fontSize = `${tamano}px`;
       puesta.el.style.color = tono(palabra.conteo, maximo);
       const caja = medirTexto(palabra.texto, tamano);
@@ -180,7 +226,7 @@ export function crearNube(contenedor, { alSeleccionar } = {}) {
       // que un alumno ve que su palabra creció.
       if (palabra.conteo > puesta.conteo) latir(puesta.el);
 
-      const tamano = tamanoFuente(palabra.conteo, geometria.unidad);
+      const tamano = tamanoConEscala(palabra.conteo, geometria.unidad);
       puesta.el.style.fontSize = `${tamano}px`;
       Object.assign(puesta, medirTexto(palabra.texto, tamano), { conteo: palabra.conteo });
     }
@@ -203,7 +249,7 @@ export function crearNube(contenedor, { alSeleccionar } = {}) {
 
       for (const palabra of nuevas) {
         // Se mide antes de crear nada: si no cabe, no se toca el DOM.
-        const tamano = tamanoFuente(palabra.conteo, geometria.unidad);
+        const tamano = tamanoConEscala(palabra.conteo, geometria.unidad);
         const caja = medirTexto(palabra.texto, tamano);
         const hueco = buscarHueco(caja, ocupadas, geometria);
         if (!hueco) {
