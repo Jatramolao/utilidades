@@ -93,8 +93,14 @@ button {
   color: var(--papel);
 }
 
+/*
+ * El hover no baja a negro: en modo nocturno el botón principal es claro y su
+ * texto es oscuro, así que oscurecer el fondo dejaba el texto en 1,27:1 —
+ * invisible. Se apaga con un token, que además sigue a la paleta cuando entre
+ * la de Duoc.
+ */
 .boton--principal:hover {
-  background: #000;
+  background: var(--tinta-suave);
 }
 
 .boton--grande {
@@ -399,6 +405,16 @@ button {
     animation: none;
     translate: none;
     scale: none;
+  }
+
+  /* El botón también se levanta al pasar por encima; con el movimiento
+     reducido no se levanta. */
+  .boton {
+    transition: none;
+  }
+
+  .boton:hover {
+    transform: none;
   }
 }
 
