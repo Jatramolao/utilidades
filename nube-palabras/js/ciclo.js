@@ -416,6 +416,15 @@ async function correr() {
   anotar(!textoLectura.endsWith('…'), 'La lectura llega entera, sin cortarse', textoLectura.slice(-40));
   anotar(!$('btn-lectura').disabled, 'El botón vuelve a quedar disponible');
 
+  // La lectura se guarda, así que el panel tiene que decir de cuántas respuestas
+  // salió: sin esa línea, un texto de hace diez minutos parece recién hecho.
+  const pieLectura = $('lectura-pie');
+  anotar(
+    !pieLectura.hidden && /respuesta/.test(pieLectura.textContent),
+    'El panel dice sobre cuántas respuestas se leyó',
+    pieLectura.textContent.trim(),
+  );
+
   if (!fueError) {
     seVeDeVerdad('El panel de lectura se ve de verdad', 'lectura');
     // La franja inferior es del QR y de los conteos: el panel no la invade.
@@ -431,9 +440,34 @@ async function correr() {
   $('ingreso-grande').click();
   await esperar(300);
 
-  // Y Esc la cierra, igual que el QR ampliado.
+  /*
+   * Segunda pulsada sobre las mismas respuestas: tiene que devolver la lectura
+   * guardada, idéntica y sin llamar al modelo.
+   *
+   * El tiempo solo discrimina contra el sitio publicado —en local el lector
+   * enlatado también responde al instante—, y ahí es donde importa: una llamada
+   * real tarda unos 5 s, la guardada es una consulta a Redis.
+   */
+  const antesDeRepetir = Date.now();
   $('btn-lectura').click();
   await esperarA(() => !$('lectura').hidden, 20000);
+  const demoraRepetida = Date.now() - antesDeRepetir;
+  if (!fueError) {
+    anotar(
+      $('lectura-texto').textContent.trim() === textoLectura,
+      'La segunda pulsada devuelve la misma lectura, palabra por palabra',
+    );
+    anotar(
+      demoraRepetida < 2000,
+      'La lectura guardada aparece sin esperar al modelo',
+      `${demoraRepetida} ms`,
+    );
+    anotar(
+      $('btn-lectura').textContent.trim() === 'Lectura',
+      'Con la lectura al día, el botón no ofrece volver a leer',
+    );
+  }
+
   doc().dispatchEvent(new (ven().KeyboardEvent)('keydown', { key: 'Escape', bubbles: true }));
   await esperar(200);
   anotar($('lectura').hidden, 'Esc cierra el panel de lectura');

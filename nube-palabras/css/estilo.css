@@ -993,6 +993,15 @@ body.pidiendo .ingreso--grande .codigo-grande {
   text-wrap: pretty;
 }
 
+/* De cuántas respuestas salió la lectura que se está viendo. Va entre el texto
+   y la pista, con una línea encima que la separa sin encerrarla en una caja. */
+.lectura__pie {
+  font-size: 0.85rem;
+  color: var(--tinta-suave);
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--linea);
+}
+
 .lectura__pista {
   font-size: 0.8rem;
   color: var(--tinta-suave);

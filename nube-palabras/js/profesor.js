@@ -27,6 +27,8 @@ let conteos = false;
 let qrAmpliado = false;
 let seleccionada = null;
 let pidiendoLectura = false;
+// La lectura en pantalla quedó desfasada: las respuestas cambiaron desde que se generó.
+let lecturaVieja = false;
 
 const nube = crearNube($('nube'), { alSeleccionar: proponerEliminar });
 
@@ -93,7 +95,7 @@ function pintarIngreso() {
 function mostrarInicio() {
   detenerSondeo();
   nube.limpiar();
-  cerrarLectura();
+  olvidarLectura();
   $('pantalla-sala').hidden = true;
   $('pantalla-inicio').hidden = false;
   pintarSalasHoy();
@@ -224,7 +226,7 @@ async function lanzarPregunta(texto) {
   // el QR vuelve a su esquina.
   alternarConteos(false);
   qrAmpliado = false;
-  cerrarLectura();
+  olvidarLectura();
   guardarSala();
   pintarEstadoPregunta();
   iniciarSondeo();
@@ -347,9 +349,37 @@ function pintarConteos(palabras) {
  * El error se muestra dentro del mismo panel y no en el aviso de red: ese lo
  * borra el siguiente sondeo a los dos segundos, y nadie alcanza a leerlo.
  */
-function mostrarLectura(texto, { esError = false } = {}) {
+const horaDe = (iso) => {
+  if (!iso) return '';
+  const cuando = new Date(iso);
+  if (Number.isNaN(cuando.getTime())) return '';
+  // 24 h: «09:09 p. m.» es largo y se lee peor proyectado que «21:09».
+  return cuando.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false });
+};
+
+/**
+ * La línea que dice sobre cuántas respuestas se leyó. Existe porque la lectura
+ * ahora se guarda: sin ella, un texto de hace diez minutos parecería recién
+ * hecho.
+ */
+function pieDeLectura({ sobre, ahora, vigente, generadaEn }) {
+  const hora = horaDe(generadaEn);
+  const sello = hora ? ` · ${hora}` : '';
+  if (vigente) {
+    return `Sobre ${ahora} ${ahora === 1 ? 'respuesta' : 'respuestas'}${sello}`;
+  }
+  return `Leída cuando había ${sobre}; ahora hay ${ahora}${sello}`;
+}
+
+function etiquetarBotonLectura() {
+  $('btn-lectura').textContent = lecturaVieja ? 'Volver a leer' : 'Lectura';
+}
+
+function mostrarLectura(texto, { esError = false, pie = '' } = {}) {
   $('lectura-titulo').textContent = esError ? 'No se pudo leer' : 'Lectura de las respuestas';
   $('lectura-texto').textContent = texto;
+  $('lectura-pie').textContent = pie;
+  $('lectura-pie').hidden = pie === '';
   $('lectura').classList.toggle('lectura--error', esError);
   $('lectura').hidden = false;
 }
@@ -358,23 +388,35 @@ function cerrarLectura() {
   $('lectura').hidden = true;
 }
 
+/** Cerrar el panel no olvida nada; cambiar de pregunta sí. */
+function olvidarLectura() {
+  cerrarLectura();
+  lecturaVieja = false;
+  etiquetarBotonLectura();
+}
+
 async function pedirLectura() {
   if (!sala || !pregunta || pidiendoLectura) return;
   const boton = $('btn-lectura');
+  // Solo se paga cuando se pide expresamente una nueva sobre respuestas que
+  // cambiaron. Mostrar la guardada es gratis e instantáneo.
+  const volverALeer = lecturaVieja;
   pidiendoLectura = true;
   boton.disabled = true;
-  boton.textContent = 'Leyendo…';
+  if (volverALeer || !$('lectura-pie').textContent) boton.textContent = 'Leyendo…';
   try {
     const datos = await pedir(`/sala/${sala.codigo}/pregunta/${pregunta.n}/lectura`, {
       metodo: 'POST',
+      cuerpo: { volverALeer },
     });
-    mostrarLectura(datos.lectura);
+    lecturaVieja = datos.vigente === false;
+    mostrarLectura(datos.lectura, { pie: pieDeLectura(datos) });
   } catch (fallo) {
     mostrarLectura(fallo.message, { esError: true });
   } finally {
     pidiendoLectura = false;
     boton.disabled = false;
-    boton.textContent = 'Lectura';
+    etiquetarBotonLectura();
   }
 }
 

@@ -338,7 +338,7 @@ async function eliminarPalabra(store, codigo, n, clave, tokenProfesor) {
  * El cliente no manda datos: la pregunta y las respuestas se leen de aquí, así
  * nadie puede inyectar texto ajeno en el prompt ni inflar el gasto.
  */
-async function leerPregunta(store, codigo, n, tokenProfesor, lector) {
+async function leerPregunta(store, codigo, n, cuerpo, tokenProfesor, lector) {
   const { fallo } = await exigirProfesor(store, codigo, tokenProfesor);
   if (fallo) return fallo;
 
@@ -349,6 +349,36 @@ async function leerPregunta(store, codigo, n, tokenProfesor, lector) {
   const palabras = await listarPalabras(store, codigo, n);
   if (palabras.length === 0) return error(409, 'Todavía no hay respuestas que leer');
 
+  /*
+   * La lectura se guarda en el hash de la pregunta, así que vive exactamente lo
+   * que vive la sala y no hay ninguna clave ni ningún vencimiento nuevo que
+   * administrar.
+   *
+   * Con una guardada a mano, el botón deja de significar «generá una lectura» y
+   * pasa a significar «mostrame la que hay»: no espera cinco segundos, no cuesta
+   * dinero, no gasta cuota, y sobre todo **dice lo mismo que la vez anterior**.
+   * Esto último es lo que más se nota en sala: esto es juicio, no cálculo, y dos
+   * llamadas sobre los mismos datos devuelven textos distintos.
+   *
+   * `lecturaSobre` es la firma: cuántas respuestas había cuando se generó. Si la
+   * cifra cambió, la guardada se muestra igual, marcada como vieja — regenerar
+   * cuesta, así que lo decide el profesor pulsando, nunca el sistema solo.
+   */
+  const sobre = palabras.reduce((suma, p) => suma + p.conteo, 0);
+  const guardada = pregunta.lectura;
+
+  if (guardada && cuerpo?.volverALeer !== true) {
+    const generadaSobre = Number(pregunta.lecturaSobre) || 0;
+    return ok({
+      lectura: guardada,
+      generadaEn: pregunta.lecturaEn ?? null,
+      sobre: generadaSobre,
+      ahora: sobre,
+      vigente: generadaSobre === sobre,
+      nueva: false,
+    });
+  }
+
   const usos = await store.incrConTtl(k.lecturas(codigo), TTL);
   if (usos > MAX_LECTURAS_POR_SALA) {
     return error(429, `Esta sala ya usó sus ${MAX_LECTURAS_POR_SALA} lecturas`);
@@ -356,7 +386,14 @@ async function leerPregunta(store, codigo, n, tokenProfesor, lector) {
 
   try {
     const texto = await (lector ?? crearLector()).leer(pregunta.texto, palabras);
-    return ok({ lectura: texto });
+    const generadaEn = ahoraISO();
+    await store.hset(k.pregunta(codigo, n), {
+      lectura: texto,
+      lecturaEn: generadaEn,
+      lecturaSobre: String(sobre),
+    });
+    await renovar(store, [k.sala(codigo), k.pregunta(codigo, n)]);
+    return ok({ lectura: texto, generadaEn, sobre, ahora: sobre, vigente: true, nueva: true });
   } catch (problema) {
     // La credencial ausente se distingue del resto: es lo primero que falta en
     // un despliegue nuevo, y un 502 genérico obligaría a ir a los registros.
@@ -429,7 +466,7 @@ export async function manejar(peticion, store, lector = null) {
   // POST /api/sala/:codigo/pregunta/:n/lectura
   if (segmentos.length === 5 && segmentos[4] === 'lectura') {
     if (metodo !== 'POST') return error(405, 'Método no permitido');
-    return leerPregunta(store, codigo, n, tokenProfesor, lector);
+    return leerPregunta(store, codigo, n, cuerpo, tokenProfesor, lector);
   }
 
   // DELETE /api/sala/:codigo/pregunta/:n/palabra/:clave

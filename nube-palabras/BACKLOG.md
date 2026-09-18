@@ -111,6 +111,21 @@ en la §14 de la spec, sin construir. La Fase 1 no cierra ninguna de esas puerta
 - **La latencia real es ~5,4 s**, en frío y en caliente, no los 2-4 estimados. Sin tocar: el único
   lever es apagar `thinking`, que se paga en calidad. Decidir después de usarla en clase.
 
+- [x] **E-07 · La lectura se guarda mientras viva la sala.** (2026-09-18) Tres campos nuevos en el
+      hash de la pregunta que ya existía — `lectura`, `lecturaEn`, `lecturaSobre` — así que **no hay
+      ninguna clave ni ningún vencimiento nuevo**: hereda las 6 h de la sala. Volver a pulsar el
+      botón ya no llama al modelo: muestra la guardada al instante, sin gastar cuota.
+      **El motivo de peso no fue el ahorro sino la coherencia:** esto es juicio, no cálculo, y dos
+      llamadas sobre los mismos datos devolvían textos distintos delante del curso.
+      `lecturaSobre` es la firma (cuántas respuestas había). Si cambia —solo puede cambiar si el
+      profesor borra un término a mano, porque el botón exige la votación cerrada— la guardada se
+      muestra igual, marcada como vieja, y el botón pasa a **Volver a leer**. Regenerar cuesta, así
+      que lo decide el profesor y nunca ocurre solo. Verificado además que la lectura **no se filtra
+      por ninguna de las dos rutas públicas** que el alumno puede llamar.
+      Persistencia más allá de la sala quedó **descartada a propósito**: sería el primer registro
+      permanente del sistema, y es contenido derivado de respuestas de estudiantes con `E-00` sin
+      responder.
+
 - [ ] **E-06 · Anotar en la bitácora la primera clase con lectura.** Si cinco segundos molestan
       en sala, y si la lectura aporta algo que la nube no daba.
 

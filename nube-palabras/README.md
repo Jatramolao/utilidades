@@ -43,7 +43,7 @@ Para usar otro puerto: `node dev.js 3210`.
 
 Dos niveles, ninguno con dependencias.
 
-**Lógica** — 64 pruebas con `node --test`: normalización, códigos de sala, codificador QR y el
+**Lógica** — 132 pruebas con `node --test`: normalización, códigos de sala, codificador QR y el
 contrato completo de la API contra un almacén en memoria.
 
 ```bash
@@ -52,7 +52,7 @@ npm test
 
 **Ciclo de lanzamiento de preguntas** — abre `/pruebas` en el navegador y presiona *Correr el
 ciclo*. Maneja la pantalla real del profesor dentro de un iframe y recorre abrir sala → lanzar →
-responder → ocultar → cerrar → lanzar la siguiente, con 26 comprobaciones.
+responder → ocultar → cerrar → lanzar la siguiente, con 69 comprobaciones.
 
 Lo que distingue a este ciclo: **no pregunta si un elemento tiene `hidden = false`, pregunta
 quién pinta de verdad en ese punto de la pantalla** (`elementFromPoint`). Nació de un bug en el
@@ -111,7 +111,13 @@ El plan gratuito sobra: una pregunta consume del orden de 250 comandos.
 
 El botón **Lectura** manda la pregunta y las respuestas a la API de Claude y devuelve dos o tres
 frases sobre qué está diciendo el curso. Es lo único de la app que cuesta dinero: **unos US$0,004
-por pulsada**, con un tope de 30 por sala.
+por lectura nueva**, con un tope de 30 por sala.
+
+La lectura **queda guardada mientras viva la sala**, así que volver a pulsar el botón la muestra al
+instante, sin costo y —lo que más se nota en clase— diciendo exactamente lo mismo que la primera
+vez. El panel indica de cuántas respuestas salió. Si las respuestas cambian después (por ejemplo
+porque borraste un término a mano), la lectura se sigue mostrando marcada como vieja y el botón
+pasa a decir **Volver a leer**: regenerar cuesta, así que lo decides tú y nunca ocurre solo.
 
 En *Settings → Environment Variables* agrega `ANTHROPIC_API_KEY` con una clave de
 [console.anthropic.com](https://console.anthropic.com), y vuelve a desplegar. La clave se usa solo
@@ -125,7 +131,7 @@ en memoria cuando no hay Redis. El arranque dice cuál de los dos está usando.
 
 ### 4. Verificar
 
-Abre `https://<tu-dominio>/pruebas` y corre el ciclo: 65 comprobaciones sobre la pantalla real.
+Abre `https://<tu-dominio>/pruebas` y corre el ciclo: 69 comprobaciones sobre la pantalla real.
 
 El ciclo **llama de verdad a la API de Claude** una vez (medio centavo). Es a propósito: una clave
 ausente o mal nombrada es un fallo que solo aparece desplegado, y ninguna prueba sin red lo ve.

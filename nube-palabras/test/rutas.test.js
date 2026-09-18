@@ -599,19 +599,23 @@ test('la lectura no acepta GET', async () => {
   assert.equal(estado, 405);
 });
 
-test('la sala tiene un tope de lecturas', async () => {
+test('la sala tiene un tope de lecturas nuevas', async () => {
   const lector = lectorEspia();
   const cliente = crearCliente({ lector });
   const { codigo, tokenProfesor, n } = await salaConRespuestas(cliente);
 
+  // `volverALeer` en cada una: sin eso, de la segunda en adelante se devolvería
+  // la guardada y no se gastaría cuota, que es justo lo que se quiere.
   for (let i = 0; i < MAX_LECTURAS_POR_SALA; i++) {
     const { estado } = await cliente.llamar('POST', `sala/${codigo}/pregunta/${n}/lectura`, {
+      cuerpo: { volverALeer: true },
       tokenProfesor,
     });
     assert.equal(estado, 200, `la lectura ${i + 1} debería pasar`);
   }
 
   const pasada = await cliente.llamar('POST', `sala/${codigo}/pregunta/${n}/lectura`, {
+    cuerpo: { volverALeer: true },
     tokenProfesor,
   });
   assert.equal(pasada.estado, 429);
@@ -638,12 +642,128 @@ test('el tope se comparte entre preguntas de la misma sala', async () => {
 
   // Y el gasto se acumula: las dos lecturas cuentan contra el mismo tope.
   for (let i = 0; i < MAX_LECTURAS_POR_SALA - 2; i++) {
-    await cliente.llamar('POST', `sala/${codigo}/pregunta/${n}/lectura`, { tokenProfesor });
+    await cliente.llamar('POST', `sala/${codigo}/pregunta/${n}/lectura`, {
+      cuerpo: { volverALeer: true },
+      tokenProfesor,
+    });
   }
   const pasada = await cliente.llamar('POST', `sala/${codigo}/pregunta/${n}/lectura`, {
+    cuerpo: { volverALeer: true },
     tokenProfesor,
   });
   assert.equal(pasada.estado, 429);
+});
+
+// --- La lectura guardada ---------------------------------------------------
+
+test('la segunda pulsada devuelve la guardada sin volver a llamar al lector', async () => {
+  const lector = lectorEspia('Casi todos rodean la misma idea.');
+  const cliente = crearCliente({ lector });
+  const { codigo, tokenProfesor, n } = await salaConRespuestas(cliente);
+  const ruta = `sala/${codigo}/pregunta/${n}/lectura`;
+
+  const primera = await cliente.llamar('POST', ruta, { tokenProfesor });
+  assert.equal(primera.cuerpo.nueva, true);
+
+  const segunda = await cliente.llamar('POST', ruta, { tokenProfesor });
+  assert.equal(segunda.estado, 200);
+  assert.equal(segunda.cuerpo.lectura, primera.cuerpo.lectura);
+  assert.equal(segunda.cuerpo.nueva, false);
+  assert.equal(segunda.cuerpo.vigente, true);
+  // Lo que se defiende: una sola llamada al modelo, no dos.
+  assert.equal(lector.pedidos.length, 1);
+});
+
+test('mostrar la guardada no gasta cuota', async () => {
+  const lector = lectorEspia();
+  const cliente = crearCliente({ lector });
+  const { codigo, tokenProfesor, n } = await salaConRespuestas(cliente);
+  const ruta = `sala/${codigo}/pregunta/${n}/lectura`;
+
+  await cliente.llamar('POST', ruta, { tokenProfesor });
+  for (let i = 0; i < MAX_LECTURAS_POR_SALA + 5; i++) {
+    const { estado } = await cliente.llamar('POST', ruta, { tokenProfesor });
+    assert.equal(estado, 200, 'mostrar la guardada nunca debería topar');
+  }
+  assert.equal(lector.pedidos.length, 1);
+});
+
+test('si llegan más respuestas, la guardada se devuelve marcada como vieja', async () => {
+  const lector = lectorEspia();
+  const cliente = crearCliente({ lector });
+  const { codigo, tokenProfesor, n } = await salaConRespuestas(cliente);
+  const ruta = `sala/${codigo}/pregunta/${n}/lectura`;
+
+  const primera = await cliente.llamar('POST', ruta, { tokenProfesor });
+  assert.equal(primera.cuerpo.vigente, true);
+  const sobre = primera.cuerpo.sobre;
+
+  await enviar(cliente, codigo, 'dispositivo-2', ['bokeh']);
+
+  const despues = await cliente.llamar('POST', ruta, { tokenProfesor });
+  assert.equal(despues.estado, 200);
+  assert.equal(despues.cuerpo.vigente, false);
+  assert.equal(despues.cuerpo.sobre, sobre);
+  assert.equal(despues.cuerpo.ahora, sobre + 1);
+  // Vieja, pero no se tira: regenerar cuesta y lo decide el profesor.
+  assert.equal(despues.cuerpo.lectura, primera.cuerpo.lectura);
+  assert.equal(lector.pedidos.length, 1);
+});
+
+test('volverALeer genera una nueva y vuelve a quedar vigente', async () => {
+  const lector = lectorEspia();
+  const cliente = crearCliente({ lector });
+  const { codigo, tokenProfesor, n } = await salaConRespuestas(cliente);
+  const ruta = `sala/${codigo}/pregunta/${n}/lectura`;
+
+  await cliente.llamar('POST', ruta, { tokenProfesor });
+  await enviar(cliente, codigo, 'dispositivo-2', ['bokeh']);
+
+  const nueva = await cliente.llamar('POST', ruta, {
+    cuerpo: { volverALeer: true },
+    tokenProfesor,
+  });
+  assert.equal(nueva.cuerpo.nueva, true);
+  assert.equal(nueva.cuerpo.vigente, true);
+  assert.equal(lector.pedidos.length, 2);
+
+  // Y la nueva queda guardada en lugar de la anterior.
+  const otra = await cliente.llamar('POST', ruta, { tokenProfesor });
+  assert.equal(otra.cuerpo.vigente, true);
+  assert.equal(lector.pedidos.length, 2);
+});
+
+test('cada pregunta guarda su propia lectura', async () => {
+  const lector = lectorEspia();
+  const cliente = crearCliente({ lector });
+  const { codigo, tokenProfesor, n } = await salaConRespuestas(cliente);
+  await cliente.llamar('POST', `sala/${codigo}/pregunta/${n}/lectura`, { tokenProfesor });
+
+  const segunda = await cliente.llamar('POST', `sala/${codigo}/pregunta`, {
+    cuerpo: { texto: '¿Y qué más?' },
+    tokenProfesor,
+  });
+  await enviar(cliente, codigo, 'dispositivo-9', ['otra cosa']);
+
+  const suya = await cliente.llamar(
+    'POST',
+    `sala/${codigo}/pregunta/${segunda.cuerpo.n}/lectura`,
+    { tokenProfesor },
+  );
+  assert.equal(suya.cuerpo.nueva, true, 'la pregunta nueva no hereda la lectura de la anterior');
+  assert.equal(lector.pedidos.length, 2);
+});
+
+test('la lectura guardada no se le escapa al alumno', async () => {
+  const cliente = crearCliente({ lector: lectorEspia() });
+  const { codigo, tokenProfesor, n } = await salaConRespuestas(cliente);
+  await cliente.llamar('POST', `sala/${codigo}/pregunta/${n}/lectura`, { tokenProfesor });
+
+  // Las dos rutas que cualquiera puede llamar sin el token del profesor.
+  const estado = await cliente.llamar('GET', `sala/${codigo}`);
+  const nube = await cliente.llamar('GET', `sala/${codigo}/pregunta/${n}/nube`);
+  assert.equal(estado.cuerpo.lectura, undefined);
+  assert.equal(nube.cuerpo.lectura, undefined);
 });
 
 test('si el lector falla, se responde 502 sin filtrar el detalle', async () => {
